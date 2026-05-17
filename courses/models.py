@@ -1,0 +1,65 @@
+# courses/models.py
+
+from django.db import models
+from accounts.models import Teacher, Student
+
+
+class Course(models.Model):
+    LEVEL_CHOICES = [
+        ("beginner", "Beginner"),
+        ("intermediate", "Intermediate"),
+        ("advanced", "Advanced"),
+    ]
+
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    category = models.CharField(max_length=255)
+
+    thumbnail = models.ImageField(upload_to="courses/", blank=True, null=True)
+
+    level = models.CharField(
+        max_length=50,
+        choices=LEVEL_CHOICES,
+        default="beginner"
+    )
+
+    language = models.CharField(max_length=100, default="English")
+
+    duration_hours = models.PositiveIntegerField(default=0)
+
+    has_certificate = models.BooleanField(default=False)
+
+    tags = models.JSONField(default=list, blank=True)
+
+    is_free = models.BooleanField(default=True)
+
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0
+    )
+
+    is_published = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+
+class Enrollment(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    progress_percentage = models.FloatField(default=0)
+    completed = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("student", "course")
+
+    def __str__(self):
+        return f"{self.student} - {self.course}"
