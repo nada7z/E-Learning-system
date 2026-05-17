@@ -38,6 +38,7 @@
 <script setup>
 import { computed } from 'vue'
 import NavSection from './NavSection.vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   Bell,
   LogOut
@@ -54,6 +55,13 @@ import {
   Users,
   Settings
 } from 'lucide-vue-next'
+
+const router = useRouter()
+const route = useRoute()
+
+function goTo(path) {
+  router.push(path)
+}
 
 const props = defineProps({
   page: String,
@@ -72,7 +80,13 @@ const studentMain = [
     icon: LayoutDashboard,
     label: 'Dashboard'
   },
-
+ 
+  {
+  page: 'student-courses',
+  icon: BookOpen,
+  label: 'Explore Courses'
+  },
+   
   {
     page: 'courses',
     icon: BookOpen,
@@ -117,12 +131,14 @@ const teacherMain = [
     label: 'My Courses'
   },
 
-  {
+  { 
+    page: 'assignments',
     icon: FileText,
     label: 'Assignments'
   },
 
-  {
+  { 
+    page: 'quizzes',
     icon: Target,
     label: 'Quizzes'
   },

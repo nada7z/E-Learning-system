@@ -13,8 +13,8 @@
       :unread-count="unreadCount"
       :open="sidebarOpen"
       @navigate="onNavigate"
-      @logout="$emit('logout')"
-      @toggle-dark="$emit('toggle-dark')"
+      @logout="logout"
+      @toggle-dark="toggleDark"
     />
 
     <div class="main-content">
@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import Sidebar from '../components/Sidebar.vue'
@@ -58,6 +58,8 @@ const emit = defineEmits([
 
 const sidebarOpen = ref(false)
 
+const dark = ref(localStorage.getItem('dark') === 'true')
+
 const currentUser = computed(() => {
   const savedUser = localStorage.getItem('user')
   return savedUser
@@ -77,5 +79,37 @@ function onNavigate(page) {
   sidebarOpen.value = false
 
   router.push(`/${page}`)
+}
+
+const toggleDark = () => {
+  dark.value = !dark.value
+
+  document.documentElement.classList.toggle(
+    'dark',
+    dark.value
+  )
+
+  localStorage.setItem(
+    'dark',
+    dark.value ? 'true' : 'false'
+  )
+}
+
+onMounted(() => {
+  document.documentElement.classList.toggle(
+    'dark',
+    dark.value
+  )
+})
+
+const logout = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('access')
+  localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('refresh')
+  localStorage.removeItem('user')
+
+  router.push('/login')
 }
 </script>

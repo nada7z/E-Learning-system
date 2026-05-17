@@ -5,7 +5,7 @@ from lessons.models import Lesson
 
 from quizzes.models import Quiz, Question, AnswerOption
 from assignments.models import Assignment
-
+from .models import Course, Enrollment
 
 class AnswerOptionNestedSerializer(serializers.Serializer):
     text = serializers.CharField()
@@ -211,3 +211,47 @@ class CourseSerializer(serializers.ModelSerializer):
                 )
 
         return course
+    
+class CourseListSerializer(serializers.ModelSerializer):
+    teacher_name = serializers.SerializerMethodField()
+    lessons_count = serializers.SerializerMethodField()
+    is_enrolled = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = [
+            "id",
+            "title",
+            "description",
+            "category",
+            "thumbnail",
+            "level",
+            "language",
+            "duration_hours",
+            "has_certificate",
+            "teacher_name",
+            "lessons_count",
+            "is_free",
+            "price",
+            "is_enrolled",
+        ]
+
+    def get_teacher_name(self, obj):
+        return str(obj.teacher)
+
+    def get_lessons_count(self, obj):
+        return obj.lessons.count()
+
+    def get_is_enrolled(self, obj):
+        request = self.context.get("request")
+
+        if not request or not request.user.is_authenticated:
+            return False
+
+        if not hasattr(request.user, "student_profile"):
+            return False
+
+        return Enrollment.objects.filter(
+            student=request.user.student_profile,
+            course=obj
+        ).exists()

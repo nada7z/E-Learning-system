@@ -51,6 +51,28 @@ const routes = [
         name: 'AdminDashboard',
         component: () => import('@/views/AdminDashboard.vue'),
         meta: { role: 'admin' }
+      },
+      {
+       path: '/assignments',
+       name: 'assignments',
+       component: () => import('@/views/AssignmentsView.vue'),
+      },
+      {
+       path: '/quizzes',
+       name: 'quizzes',
+       component: () => import('@/views/QuizzesView.vue'),
+      },
+      {
+       path: 'student-courses',
+       name: 'StudentCourses',
+       component: () => import('@/views/StudentCourses.vue'),
+       meta: { role: 'student' }
+      },
+      {
+       path: 'student-courses/:id',
+       name: 'StudentCourseDetail',
+       component: () => import('@/views/StudentCourseDetail.vue'),
+       meta: { role: 'student' }
       }
     ]
   },
