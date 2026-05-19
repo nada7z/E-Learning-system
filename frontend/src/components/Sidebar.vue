@@ -146,11 +146,13 @@ const teacherMain = [
 
 const teacherAnalytics = [
   {
+    page: 'student-stats',
     icon: BarChart3,
     label: 'Student Stats'
   },
 
   {
+    page: 'course-performance',
     icon: TrendingUp,
     label: 'Course Performance'
   },

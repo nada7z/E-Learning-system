@@ -1,4 +1,5 @@
 from rest_framework.routers import DefaultRouter
+
 from .views import (
     AssignmentViewSet,
     SubmissionViewSet,
@@ -8,12 +9,14 @@ router = DefaultRouter()
 
 router.register(
     "assignments",
-    AssignmentViewSet
+    AssignmentViewSet,
+    basename="assignments"
 )
 
 router.register(
     "submissions",
-    SubmissionViewSet
+    SubmissionViewSet,
+    basename="submissions"
 )
 
 urlpatterns = router.urls

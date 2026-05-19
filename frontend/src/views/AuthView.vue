@@ -2,85 +2,147 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-logo">
-        <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px">
           <div class="logo-icon">EF</div>
-          <span style="font-family:Sora,sans-serif;font-weight:700;font-size:22px">EduFlow</span>
+          <h1 style="margin:0;font-size:24px">EduFlow</h1>
         </div>
-        <p style="font-size:14px;color:var(--text2)">Professional Learning Management System</p>
+
+        <p style="color:var(--text2);font-size:15px">
+          Professional Learning Management System
+        </p>
       </div>
 
       <div class="role-tabs">
-        <div v-for="r in roles" :key="r" class="role-tab" 
-             :class="{ active: form.role === r }" 
-             @click="form.role = r">
-          {{ r.charAt(0).toUpperCase() + r.slice(1) }}
+        <div
+          class="role-tab"
+          :class="{ active: form.role === 'student' }"
+          @click="form.role = 'student'"
+        >
+          Student
+        </div>
+
+        <div
+          class="role-tab"
+          :class="{ active: form.role === 'teacher' }"
+          @click="form.role = 'teacher'"
+        >
+          Teacher
+        </div>
+
+        <div
+          class="role-tab"
+          :class="{ active: form.role === 'admin' }"
+          @click="form.role = 'admin'"
+        >
+          Admin
         </div>
       </div>
 
-      <div class="tab-bar" style="margin-bottom:24px;width:100%">
-        <div class="tab flex-1" style="text-align:center" 
-             :class="{ active: authTab === 'login' }" 
-             @click="authTab = 'login'">Sign In</div>
-        <div class="tab flex-1" style="text-align:center" 
-             :class="{ active: authTab === 'register' }" 
-             @click="authTab = 'register'">Register</div>
+      <div class="role-tabs">
+        <div
+          class="role-tab"
+          :class="{ active: authTab === 'login' }"
+          @click="authTab = 'login'"
+        >
+          Sign In
+        </div>
+
+        <div
+          class="role-tab"
+          :class="{ active: authTab === 'register' }"
+          @click="authTab = 'register'"
+        >
+          Register
+        </div>
       </div>
 
-      <!-- Login Form -->
-      <div v-if="authTab === 'login'">
+      <div v-if="authTab === 'register'" class="form-row">
         <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <input class="form-input" type="email" v-model="form.email" placeholder="you@example.com" />
+          <label class="form-label">First Name</label>
+          <input
+            v-model="form.first_name"
+            class="form-input"
+            type="text"
+            placeholder="First name"
+          />
         </div>
+
         <div class="form-group">
-          <label class="form-label">Password</label>
-          <input class="form-input" type="password" v-model="form.password" placeholder="••••••••" />
+          <label class="form-label">Last Name</label>
+          <input
+            v-model="form.last_name"
+            class="form-input"
+            type="text"
+            placeholder="Last name"
+          />
         </div>
-        <div class="flex items-center justify-between mt-2 mb-4">
-          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
-            <input type="checkbox" style="accent-color:var(--accent)" /> Remember me
-          </label>
-          <span style="font-size:13px;color:var(--accent);cursor:pointer">Forgot password?</span>
-        </div>
-        <button class="btn btn-primary w-full" style="justify-content:center;padding:13px" 
-                @click="handleSubmit" :disabled="loading">
-          {{ loading ? 'Signing In...' : 'Sign In →' }}
-        </button>
       </div>
 
-      <!-- Register Form -->
-      <div v-else>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">First Name</label>
-            <input class="form-input" v-model="form.first_name" placeholder="John" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Last Name</label>
-            <input class="form-input" v-model="form.last_name" placeholder="Doe" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input class="form-input" type="email" v-model="form.email" placeholder="you@example.com" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input class="form-input" type="password" v-model="form.password" placeholder="Create password" />
-        </div>
-        <button class="btn btn-primary w-full mt-2" style="justify-content:center;padding:13px" 
-                @click="handleSubmit" :disabled="loading">
-          {{ loading ? 'Creating Account...' : 'Create Account →' }}
-        </button>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input
+          v-model="form.email"
+          class="form-input"
+          type="email"
+          placeholder="you@example.com"
+        />
       </div>
 
-      <div style="text-align:center;margin-top:20px">
-        <span style="font-size:12px;color:var(--text3)">Demo: Choose role then Sign In</span>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input
+          v-model="form.password"
+          class="form-input"
+          type="password"
+          placeholder="••••••••"
+        />
       </div>
 
-      <div class="flex items-center justify-center gap-3 mt-4">
-        <span style="font-size:13px;color:var(--text2)">Dark mode</span>
-        <div class="dark-toggle" :class="{ on: dark }" @click="$emit('toggle-dark')">
+      <div
+        v-if="authTab === 'login'"
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"
+      >
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px">
+          <input type="checkbox" />
+          Remember me
+        </label>
+
+        <a style="color:var(--accent);font-size:14px" href="#">
+          Forgot password?
+        </a>
+      </div>
+
+      <p v-if="error" class="auth-error">
+        {{ error }}
+      </p>
+
+      <button
+        class="btn btn-primary"
+        style="width:100%;justify-content:center;padding:13px 18px;font-size:15px"
+        :disabled="loading"
+        @click="handleSubmit"
+      >
+        {{
+          loading
+            ? 'Please wait...'
+            : authTab === 'login'
+            ? 'Sign In →'
+            : 'Create Account →'
+        }}
+      </button>
+
+      <p style="text-align:center;color:var(--text3);font-size:13px;margin-top:24px">
+        Demo: Choose role then Sign In
+      </p>
+
+      <div style="display:flex;align-items:center;gap:12px;margin-top:18px">
+        <span style="font-size:14px;color:var(--text2)">Dark mode</span>
+
+        <div
+          class="dark-toggle"
+          :class="{ on: isDark }"
+          @click="toggleDark"
+        >
           <div class="dark-toggle-knob"></div>
         </div>
       </div>
@@ -89,133 +151,177 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
-import axios from 'axios'
+import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 
-const props = defineProps({ dark: Boolean })
-const emit = defineEmits(['toggle-dark', 'success'])
-
-const roles = ['student', 'teacher', 'admin']
 const authTab = ref('login')
 const loading = ref(false)
+const error = ref('')
+const isDark = ref(false)
 
-const form = ref({
-  email: '',
-  password: '',
+const form = reactive({
   role: 'student',
   first_name: '',
-  last_name: ''
+  last_name: '',
+  email: '',
+  password: '',
 })
 
-// Axios instance
-const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/',
-  headers: {
-    'Content-Type': 'application/json'
+watch(
+  () => form.role,
+  () => {
+    error.value = ''
   }
+)
+
+watch(authTab, () => {
+  error.value = ''
 })
 
-const handleSubmit = async () => {
-  // Basic validation
-  if (!form.value.email || !form.value.password) {
-    alert("Email and password are required!")
+function toggleDark() {
+  isDark.value = !isDark.value
+  document.documentElement.classList.toggle('dark', isDark.value)
+}
+
+function getErrorMessage(err) {
+  const data = err.response?.data
+
+  if (!data) {
+    return 'Could not connect to the server.'
+  }
+
+  if (data.detail) {
+    return 'Incorrect email or password.'
+  }
+
+  if (data.email) {
+    return Array.isArray(data.email)
+      ? data.email[0]
+      : data.email
+  }
+
+  if (data.password) {
+    return Array.isArray(data.password)
+      ? data.password[0]
+      : data.password
+  }
+
+  if (data.username) {
+    return Array.isArray(data.username)
+      ? data.username[0]
+      : data.username
+  }
+
+  if (data.role) {
+    return Array.isArray(data.role)
+      ? data.role[0]
+      : data.role
+  }
+
+  if (data.message) {
+    return data.message
+  }
+
+  return 'Authentication failed.'
+}
+
+async function handleSubmit() {
+  error.value = ''
+
+  if (!form.email.trim()) {
+    error.value = 'Email is required.'
     return
   }
 
-  // Extra validation for register
-  if (
-    authTab.value === 'register' &&
-    (!form.value.first_name || !form.value.last_name)
-  ) {
-    alert("First name and last name are required!")
+  if (!form.password.trim()) {
+    error.value = 'Password is required.'
     return
+  }
+
+  if (authTab.value === 'register') {
+    if (!form.first_name.trim()) {
+      error.value = 'First name is required.'
+      return
+    }
+
+    if (!form.last_name.trim()) {
+      error.value = 'Last name is required.'
+      return
+    }
   }
 
   loading.value = true
 
-  // Choose endpoint
-  const endpoint =
-    authTab.value === 'login'
-      ? 'auth/login/'
-      : 'auth/register/'
-
-  // Payload
-  const payload =
-    authTab.value === 'register'
-      ? {
-          username: form.value.email, // required by Django serializer
-          email: form.value.email,
-          password: form.value.password,
-          first_name: form.value.first_name,
-          last_name: form.value.last_name,
-          role: form.value.role
-        }
-      : {
-          email: form.value.email,
-          password: form.value.password
-        }
-
   try {
-    const response = await api.post(endpoint, payload)
+    const url =
+      authTab.value === 'register'
+        ? 'http://127.0.0.1:8000/api/auth/register/'
+        : 'http://127.0.0.1:8000/api/auth/login/'
 
+    const payload =
+      authTab.value === 'register'
+        ? {
+            username: form.email,
+            email: form.email,
+            password: form.password,
+            first_name: form.first_name,
+            last_name: form.last_name,
+            role: form.role,
+          }
+        : {
+            email: form.email,
+            password: form.password,
+            role: form.role,
+          }
+
+    const response = await axios.post(url, payload)
     const data = response.data
-
-    // Save tokens if they exist
-    if (data.access) {
-      localStorage.setItem('access_token', data.access)
-    }
-
-    if (data.refresh) {
-      localStorage.setItem('refresh_token', data.refresh)
-    }
-
-    // Save user data
     const userData = data.user || data
+
+    if (authTab.value === 'login' && userData.role !== form.role) {
+      error.value = `This is not a ${form.role} account.`
+
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user')
+
+      return
+    }
+
+    localStorage.setItem('access_token', data.access)
+    localStorage.setItem('refresh_token', data.refresh)
     localStorage.setItem('user', JSON.stringify(userData))
 
-    emit('success', userData)
-
-    // Success messages
-    if (authTab.value === 'register') {
-      alert('Account created successfully! 🎉')
-      authTab.value = 'login'
-    } else {
-      alert(`Welcome ${userData.first_name || userData.email}! 👋`)
-    }
-
     if (userData.role === 'student') {
-  router.push('/student-dashboard')
-}
-else if (userData.role === 'teacher') {
-  router.push('/teacher-dashboard')
-}
-else if (userData.role === 'admin') {
-  router.push('/admin-dashboard')
-}
-
-  } catch (error) {
-    console.error(error)
-
-    const fallbackMsg =
-      authTab.value === 'login'
-        ? 'Login failed. Please check your credentials.'
-        : 'Registration failed. Please check your information.'
-
-    const errorMsg =
-      error.response?.data?.detail ||
-      error.response?.data?.email?.[0] ||
-      error.response?.data?.password?.[0] ||
-      error.response?.data?.username?.[0] ||
-      error.response?.data?.role?.[0] ||
-      fallbackMsg
-
-    alert(errorMsg)
-
+      router.push('/student-dashboard')
+    } else if (userData.role === 'teacher') {
+      router.push('/teacher-dashboard')
+    } else if (userData.role === 'admin') {
+      router.push('/admin-dashboard')
+    } else {
+      router.push('/')
+    }
+  } catch (err) {
+    console.error(err)
+    error.value = getErrorMessage(err)
   } finally {
     loading.value = false
   }
 }
 </script>
+
+<style scoped>
+.auth-error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+</style>

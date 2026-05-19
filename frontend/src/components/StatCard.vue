@@ -8,5 +8,5 @@
 </template>
 
 <script setup>
-defineProps({ icon: String, value: [String, Number], label: String, trend: String, trendClass: String, background: { type: String, default: '#EEF1FF' } })
+defineProps({ icon: [String, Object, Function], value: [String, Number], label: String, trend: String, trendClass: String, background: { type: String, default: '#EEF1FF' } })
 </script>

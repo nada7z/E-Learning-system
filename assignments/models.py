@@ -1,7 +1,3 @@
-# =========================
-# assignments/models.py
-# =========================
-
 from django.db import models
 from courses.models import Course
 from accounts.models import Student
@@ -12,8 +8,8 @@ class Assignment(models.Model):
 
     title = models.CharField(max_length=255)
     description = models.TextField()
-
     deadline = models.DateTimeField()
+    max_score = models.PositiveIntegerField(default=100)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -25,7 +21,8 @@ class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
 
-    file = models.FileField(upload_to='submissions/')
+    text_answer = models.TextField(blank=True)
+    file = models.FileField(upload_to='submissions/', blank=True, null=True)
 
     submitted_at = models.DateTimeField(auto_now_add=True)
 

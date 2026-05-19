@@ -73,6 +73,22 @@ const routes = [
        name: 'StudentCourseDetail',
        component: () => import('@/views/StudentCourseDetail.vue'),
        meta: { role: 'student' }
+      },
+      {
+       path: '/courses/:id/edit',
+       component: () => import('@/views/CreateCourse.vue'),
+      },
+      {
+       path: 'student-stats',
+       name: 'StudentStats',
+       component: () => import('@/views/StudentsStatsView.vue'),
+       meta: { role: 'teacher' }
+      },
+      {
+       path: 'course-performance',
+       name: 'CoursePerformance',
+       component: () => import('@/views/CoursePerformance.vue'),
+       meta: { role: 'teacher' }
       }
     ]
   },

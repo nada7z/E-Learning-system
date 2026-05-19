@@ -87,9 +87,9 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import axios from 'axios'
-
+import { useRoute, useRouter } from 'vue-router'
 import CourseStepper from '@/components/course/CourseStepper.vue'
 import CourseBasics from '@/components/course/CourseBasics.vue'
 import CourseContent from '@/components/course/CourseContent.vue'
@@ -97,6 +97,11 @@ import CourseSettings from '@/components/course/CourseSettings.vue'
 import CourseReview from '@/components/course/CourseReview.vue'
 
 import '@/assets/create-course.css'
+
+const route = useRoute()
+const router = useRouter()
+
+const isEditMode = computed(() => !!route.params.id)
 
 const emit = defineEmits([
   'view-course',
@@ -384,7 +389,7 @@ function validateContentStep() {
   return true
 }
 
-async function createCourse() {
+async function saveCourse() {
   const payload = {
     title: form.title,
     description: form.description,
@@ -405,39 +410,64 @@ async function createCourse() {
       lesson_type: lesson.type,
       order_number: index + 1,
 
-      quiz: lesson.type === 'quiz'
-        ? {
-            title: lesson.title,
-            description: lesson.content || '',
-            passing_score: lesson.quiz.passing_score,
-            time_limit_minutes: lesson.quiz.time_limit_minutes,
-            questions: lesson.quiz.questions,
-          }
-        : null,
+      quiz:
+        lesson.type === 'quiz'
+          ? {
+              title: lesson.title,
+              description: lesson.content || '',
+              passing_score: lesson.quiz.passing_score,
+              time_limit_minutes:
+                lesson.quiz.time_limit_minutes,
+              questions: lesson.quiz.questions,
+            }
+          : null,
 
-      assignment: lesson.type === 'assignment'
-        ? {
-            title: lesson.title,
-            instructions: lesson.assignment.instructions,
-            due_date: lesson.assignment.due_date || null,
-            max_score: lesson.assignment.max_score,
-          }
-        : null,
+      assignment:
+        lesson.type === 'assignment'
+          ? {
+              title: lesson.title,
+              instructions:
+                lesson.assignment.instructions,
+              due_date:
+                lesson.assignment.due_date || null,
+              max_score:
+                lesson.assignment.max_score,
+            }
+          : null,
     })),
 
     is_free: form.pricing === 'free',
-    price: form.pricing === 'free' ? 0 : form.price,
-    is_published: form.settings.publishImmediately,
+    price: form.pricing === 'free'
+      ? 0
+      : form.price,
+
+    is_published:
+      form.settings.publishImmediately,
   }
 
   const token = localStorage.getItem('access_token')
-  console.log('ACCESS TOKEN:', token)
 
-if (!token) {
-  alert('No token found. Please login again.')
-  throw new Error('No access token found')
-}
+  if (!token) {
+    alert('No token found. Please login again.')
+    throw new Error('No access token found')
+  }
 
+  // EDIT
+  if (isEditMode.value) {
+    const response = await axios.patch(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    return response.data
+  }
+
+  // CREATE
   const response = await axios.post(
     'http://127.0.0.1:8000/api/courses/',
     payload,
@@ -524,4 +554,63 @@ function showToast(message) {
     toast.visible = false
   }, 2500)
 }
+
+async function loadCourse() {
+  if (!isEditMode.value) return
+
+  try {
+    const token = localStorage.getItem('access_token')
+
+    const response = await axios.get(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    const course = response.data
+
+    form.title = course.title
+    form.description = course.description
+    form.category = course.category
+    form.level = course.level
+    form.language = course.language
+    form.duration = course.duration_hours
+    form.tags = course.tags || []
+
+    form.pricing = course.is_free
+      ? 'free'
+      : 'paid'
+
+    form.price = course.price
+
+    form.settings.publishImmediately =
+      course.is_published
+
+    form.lessons = (course.lessons || []).map(
+      (lesson, index) => ({
+        id: lesson.id || index + 1,
+        type: lesson.lesson_type,
+        title: lesson.title,
+        content: lesson.content,
+        video_url: lesson.video_url,
+        video_file: null,
+        isEditing: false,
+
+        quiz: lesson.quiz || null,
+        assignment: lesson.assignment || null,
+      })
+    )
+  } catch (error) {
+    console.error(error)
+    showToast('Failed to load course')
+  }
+}
+
+onMounted(() => {
+  loadCourse()
+})
+
 </script>

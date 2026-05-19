@@ -114,3 +114,28 @@ class EnrollCourseView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+    
+def perform_update(self, serializer):
+    user = self.request.user
+
+    if not hasattr(user, "teacher_profile"):
+        raise PermissionDenied("Only teachers can update courses.")
+
+    course = self.get_object()
+
+    if course.teacher != user.teacher_profile:
+        raise PermissionDenied("You can only update your own courses.")
+
+    serializer.save()
+
+
+def perform_destroy(self, instance):
+    user = self.request.user
+
+    if not hasattr(user, "teacher_profile"):
+        raise PermissionDenied("Only teachers can delete courses.")
+
+    if instance.teacher != user.teacher_profile:
+        raise PermissionDenied("You can only delete your own courses.")
+
+    instance.delete()

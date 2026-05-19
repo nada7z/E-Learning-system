@@ -3,7 +3,7 @@
     <div class="page-header flex items-center justify-between">
       <div>
         <h1 class="page-title">
-          {{ role === 'student' ? 'My Courses' : role === 'teacher' ? 'Manage Courses' : 'All Courses' }}
+          {{ role === 'admin' ? 'All Courses' : 'My Courses' }}
         </h1>
 
         <p class="page-sub">
@@ -20,20 +20,53 @@
       </button>
     </div>
 
-    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center">
+    <div
+      style="
+        display:flex;
+        gap:12px;
+        margin-bottom:24px;
+        flex-wrap:wrap;
+        align-items:center;
+      "
+    >
       <div style="position:relative;flex:1;min-width:200px">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3)">🔍</span>
+        <span
+          style="
+            position:absolute;
+            left:12px;
+            top:50%;
+            transform:translateY(-50%);
+            color:var(--text3);
+          "
+        >
+          🔍
+        </span>
 
         <input
           v-model="search"
-          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px 10px 36px;font-size:14px;color:var(--text)"
+          style="
+            width:100%;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:10px;
+            padding:10px 14px 10px 36px;
+            font-size:14px;
+            color:var(--text);
+          "
           placeholder="Search courses…"
         />
       </div>
 
       <select
         v-model="selectedCategory"
-        style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text)"
+        style="
+          background:var(--surface);
+          border:1px solid var(--border);
+          border-radius:10px;
+          padding:10px 14px;
+          font-size:14px;
+          color:var(--text);
+        "
       >
         <option value="">All Categories</option>
         <option>Development</option>
@@ -113,13 +146,31 @@
               {{ course.is_free ? 'Free' : `$${course.price}` }}
             </span>
 
-            <span
-              v-if="role !== 'student'"
-              class="badge"
-              :class="course.is_published ? 'badge-green' : 'badge-warn'"
-            >
-              {{ course.is_published ? 'published' : 'draft' }}
-            </span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span
+                v-if="role !== 'student'"
+                class="badge"
+                :class="course.is_published ? 'badge-green' : 'badge-warn'"
+              >
+                {{ course.is_published ? 'published' : 'draft' }}
+              </span>
+
+              <button
+                v-if="role !== 'student'"
+                class="btn btn-sm"
+                @click.stop="editCourse(course.id)"
+              >
+                Edit
+              </button>
+
+              <button
+                v-if="role !== 'student'"
+                class="btn btn-sm btn-danger"
+                @click.stop="deleteCourse(course.id)"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -128,7 +179,10 @@
     <CourseTable
       v-else
       :courses="filteredCourses"
-      @navigate="$emit('navigate', $event)"
+      :role="role"
+      @navigate="goToCourse"
+      @edit="editCourse"
+      @delete="deleteCourse"
     />
   </div>
 </template>
@@ -137,13 +191,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+
 import CourseTable from '../components/CourseTable.vue'
 
 const props = defineProps({
-  role: String
+  role: {
+    type: String,
+    default: ''
+  }
 })
-
-defineEmits(['navigate', 'toast'])
 
 const router = useRouter()
 
@@ -156,9 +212,12 @@ const selectedCategory = ref('')
 
 const filteredCourses = computed(() => {
   return courses.value.filter((course) => {
+    const term = search.value.toLowerCase()
+
     const matchesSearch =
-      course.title?.toLowerCase().includes(search.value.toLowerCase()) ||
-      course.description?.toLowerCase().includes(search.value.toLowerCase())
+      course.title?.toLowerCase().includes(term) ||
+      course.description?.toLowerCase().includes(term) ||
+      course.teacher_name?.toLowerCase().includes(term)
 
     const matchesCategory =
       !selectedCategory.value ||
@@ -199,6 +258,34 @@ function goToCreateCourse() {
 
 function goToCourse(id) {
   router.push(`/courses/${id}`)
+}
+
+function editCourse(id) {
+  router.push(`/courses/${id}/edit`)
+}
+
+async function deleteCourse(id) {
+  if (!confirm('Delete this course?')) return
+
+  try {
+    const token = localStorage.getItem('access_token')
+
+    await axios.delete(
+      `http://127.0.0.1:8000/api/courses/${id}/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    courses.value = courses.value.filter(
+      (course) => course.id !== id
+    )
+  } catch (err) {
+    console.error(err)
+    alert('Failed to delete course.')
+  }
 }
 
 onMounted(() => {
