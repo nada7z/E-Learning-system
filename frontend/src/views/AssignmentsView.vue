@@ -19,11 +19,7 @@
     <div class="filters-bar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input
-          v-model="search"
-          class="input search-input"
-          placeholder="Search assignments…"
-        />
+        <input v-model="search" class="input search-input" placeholder="Search assignments…" />
       </div>
 
       <select v-model="filterCourse" class="input filter-select">
@@ -55,11 +51,7 @@
       </div>
 
       <div v-else class="assignment-list">
-        <div
-          v-for="a in filteredAssignments"
-          :key="a.id"
-          class="assignment-card"
-        >
+        <div v-for="a in filteredAssignments" :key="a.id" class="assignment-card">
           <!-- Left accent -->
           <div class="card-accent" :class="deadlineClass(a.deadline)" />
 
@@ -95,13 +87,10 @@
             <!-- Submission progress -->
             <div class="submission-progress">
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{
-                    width: submissionRate(a) + '%',
-                    background: deadlineFill(a.deadline)
-                  }"
-                />
+                <div class="progress-fill" :style="{
+                  width: submissionRate(a) + '%',
+                  background: deadlineFill(a.deadline)
+                }" />
               </div>
               <span class="progress-pct">{{ submissionRate(a) }}% submitted</span>
             </div>
@@ -137,7 +126,8 @@
       <template v-else>
         <div class="grade-stats">
           <div class="stat-pill"><span>📬</span> {{ currentAssignment.submissions_count }} submitted</div>
-          <div class="stat-pill"><span>⏳</span> {{ currentAssignment.enrolled_count - currentAssignment.graded_count }} pending grade</div>
+          <div class="stat-pill"><span>⏳</span> {{ currentAssignment.enrolled_count - currentAssignment.graded_count }}
+            pending grade</div>
           <div class="stat-pill"><span>✅</span> {{ currentAssignment.graded_count }} graded</div>
           <div class="stat-pill"><span>📊</span> Avg {{ currentAssignment.avg_grade ?? '—' }} pts</div>
         </div>
@@ -173,23 +163,13 @@
                 </td>
                 <td>
                   <div class="grade-input-wrap">
-                    <input
-                      v-model.number="sub.grade"
-                      class="input grade-input"
-                      type="number"
-                      :min="0"
-                      :max="currentAssignment.max_score"
-                      :placeholder="'/ ' + currentAssignment.max_score"
-                    />
+                    <input v-model.number="sub.grade" class="input grade-input" type="number" :min="0"
+                      :max="currentAssignment.max_score" :placeholder="'/ ' + currentAssignment.max_score" />
                   </div>
                 </td>
                 <td>
-                  <input
-                    v-model="sub.feedback"
-                    class="input"
-                    style="min-width:180px"
-                    placeholder="Optional feedback…"
-                  />
+                  <input v-model="sub.feedback" class="input" style="min-width:180px"
+                    placeholder="Optional feedback…" />
                 </td>
                 <td>
                   <span class="status-badge" :class="sub.grade != null ? 'status-green' : 'status-warn'">
@@ -197,11 +177,7 @@
                   </span>
                 </td>
                 <td>
-                  <button
-                    class="btn btn-primary btn-sm"
-                    :disabled="sub.grade == null"
-                    @click="saveGrade(sub)"
-                  >
+                  <button class="btn btn-primary btn-sm" :disabled="sub.grade == null" @click="saveGrade(sub)">
                     Save
                   </button>
                 </td>
@@ -233,36 +209,23 @@
 
             <div class="field">
               <label class="label">Title <span class="req">*</span></label>
-              <input
-                v-model="modal.form.title"
-                class="input"
-                :class="{ error: modal.errors.title }"
-                placeholder="e.g. Build a REST API with Django"
-              />
+              <input v-model="modal.form.title" class="input" :class="{ error: modal.errors.title }"
+                placeholder="e.g. Build a REST API with Django" />
               <span v-if="modal.errors.title" class="err-msg">⚠ {{ modal.errors.title }}</span>
             </div>
 
             <div class="field">
               <label class="label">Description / Instructions <span class="req">*</span></label>
-              <textarea
-                v-model="modal.form.description"
-                class="input"
-                rows="5"
-                :class="{ error: modal.errors.description }"
-                placeholder="Explain what the student must submit…"
-              />
+              <textarea v-model="modal.form.description" class="input" rows="5"
+                :class="{ error: modal.errors.description }" placeholder="Explain what the student must submit…" />
               <span v-if="modal.errors.description" class="err-msg">⚠ {{ modal.errors.description }}</span>
             </div>
 
             <div class="grid-2">
               <div class="field">
                 <label class="label">Deadline <span class="req">*</span></label>
-                <input
-                  v-model="modal.form.deadline"
-                  class="input"
-                  type="datetime-local"
-                  :class="{ error: modal.errors.deadline }"
-                />
+                <input v-model="modal.form.deadline" class="input" type="datetime-local"
+                  :class="{ error: modal.errors.deadline }" />
                 <span v-if="modal.errors.deadline" class="err-msg">⚠ {{ modal.errors.deadline }}</span>
               </div>
               <div class="field">
@@ -473,7 +436,9 @@ async function saveAssignment() {
   }
 
   try {
+
     if (modal.editing) {
+
       await axios.patch(
         `http://127.0.0.1:8000/api/assignments/${modal._id}/`,
         payload,
@@ -481,18 +446,41 @@ async function saveAssignment() {
       )
 
       showToast('Assignment updated ✅')
+
     } else {
-      await axios.post(
+
+      const response = await axios.post(
         'http://127.0.0.1:8000/api/assignments/',
         payload,
         authHeaders()
       )
 
+      const course = courses.value.find(
+        (c) => Number(c.id) === Number(modal.form.course)
+      )
+
+      if (course) {
+
+        if (!course.lessons) {
+          course.lessons = []
+        }
+
+        course.lessons.push({
+          id: response.data.id,
+          lesson_type: 'assignment',
+          title: response.data.title,
+          content: response.data.description || '',
+          assignment: response.data,
+        })
+      }
+
       showToast('Assignment created ✅')
     }
 
     modal.open = false
+
     await fetchData()
+
   } catch (error) {
     console.error(error)
     showToast('Failed to save assignment')

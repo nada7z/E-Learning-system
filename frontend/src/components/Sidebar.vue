@@ -1,6 +1,8 @@
 <template>
   <nav class="sidebar" :class="{ open }">
-    <div class="sidebar-logo"><div class="logo-icon">EF</div><span class="logo-text">EduFlow</span></div>
+    <div class="sidebar-logo">
+      <div class="logo-icon">EF</div><span class="logo-text">EduFlow</span>
+    </div>
     <div class="sidebar-nav">
       <template v-if="role === 'student'">
         <NavSection label="Main" :items="studentMain" :page="page" @navigate="$emit('navigate', $event)" />
@@ -19,17 +21,23 @@
         <div class="nav-item" :class="{ active: page === 'notifications' }" @click="$emit('navigate', 'notifications')">
           <Bell class="nav-icon" />Notifications <span class="nav-badge" v-if="unreadCount">{{ unreadCount }}</span>
         </div>
-        <div class="nav-item" @click="$emit('logout')"><LogOut class="nav-icon" />Sign Out</div>
+        <div class="nav-item" @click="$emit('logout')">
+          <LogOut class="nav-icon" />Sign Out
+        </div>
       </div>
     </div>
     <div class="sidebar-footer">
       <div class="user-chip">
         <div class="avatar" :style="avatarStyle">{{ avatarText }}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ displayName }}</div>
+          <div
+            style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            {{ displayName }}</div>
           <div style="font-size:12px;color:var(--text2);text-transform:capitalize">{{ role }}</div>
         </div>
-        <div class="dark-toggle" :class="{ on: dark }" @click="$emit('toggle-dark')" style="flex-shrink:0"><div class="dark-toggle-knob"></div></div>
+        <div class="dark-toggle" :class="{ on: dark }" @click="$emit('toggle-dark')" style="flex-shrink:0">
+          <div class="dark-toggle-knob"></div>
+        </div>
       </div>
     </div>
   </nav>
@@ -80,13 +88,13 @@ const studentMain = [
     icon: LayoutDashboard,
     label: 'Dashboard'
   },
- 
+
   {
-  page: 'student-courses',
-  icon: BookOpen,
-  label: 'Explore Courses'
+    page: 'explore-courses',
+    icon: BookOpen,
+    label: 'Explore Courses'
   },
-   
+
   {
     page: 'courses',
     icon: BookOpen,
@@ -102,11 +110,13 @@ const studentMain = [
 
 const studentProgress = [
   {
+    page: 'student/assignments',
     icon: FileText,
     label: 'Assignments'
   },
 
   {
+    page: 'student/quizzes',
     icon: Target,
     label: 'Quizzes'
   },
@@ -131,13 +141,13 @@ const teacherMain = [
     label: 'My Courses'
   },
 
-  { 
+  {
     page: 'assignments',
     icon: FileText,
     label: 'Assignments'
   },
 
-  { 
+  {
     page: 'quizzes',
     icon: Target,
     label: 'Quizzes'

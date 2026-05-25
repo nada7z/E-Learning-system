@@ -53,42 +53,46 @@ const routes = [
         meta: { role: 'admin' }
       },
       {
-       path: '/assignments',
-       name: 'assignments',
-       component: () => import('@/views/AssignmentsView.vue'),
+        path: '/assignments',
+        name: 'assignments',
+        component: () => import('@/views/AssignmentsView.vue'),
       },
       {
-       path: '/quizzes',
-       name: 'quizzes',
-       component: () => import('@/views/QuizzesView.vue'),
+        path: '/quizzes',
+        name: 'quizzes',
+        component: () => import('@/views/QuizzesView.vue'),
       },
       {
-       path: 'student-courses',
-       name: 'StudentCourses',
-       component: () => import('@/views/StudentCourses.vue'),
-       meta: { role: 'student' }
+        path: 'explore-courses',
+        name: 'ExploreCourses',
+        component: () => import('@/views/ExploreCourses.vue'),
+        meta: { role: 'student' }
       },
       {
-       path: 'student-courses/:id',
-       name: 'StudentCourseDetail',
-       component: () => import('@/views/StudentCourseDetail.vue'),
-       meta: { role: 'student' }
+        path: '/student/quizzes',
+        name: 'StudentQuizzes',
+        component: () => import('@/views/StudentQuizzesView.vue'),
       },
       {
-       path: '/courses/:id/edit',
-       component: () => import('@/views/CreateCourse.vue'),
+        path: '/student/assignments',
+        name: 'StudentAssignments',
+        component: () => import('@/views/StudentAssignmentsView.vue'),
       },
       {
-       path: 'student-stats',
-       name: 'StudentStats',
-       component: () => import('@/views/StudentsStatsView.vue'),
-       meta: { role: 'teacher' }
+        path: '/courses/:id/edit',
+        component: () => import('@/views/CreateCourse.vue'),
       },
       {
-       path: 'course-performance',
-       name: 'CoursePerformance',
-       component: () => import('@/views/CoursePerformance.vue'),
-       meta: { role: 'teacher' }
+        path: 'student-stats',
+        name: 'StudentStats',
+        component: () => import('@/views/StudentsStatsView.vue'),
+        meta: { role: 'teacher' }
+      },
+      {
+        path: 'course-performance',
+        name: 'CoursePerformance',
+        component: () => import('@/views/CoursePerformance.vue'),
+        meta: { role: 'teacher' }
       }
     ]
   },

@@ -11,40 +11,30 @@
         </p>
       </div>
 
-      <button
-        v-if="role !== 'student'"
-        class="btn btn-primary"
-        @click="goToCreateCourse"
-      >
+      <button v-if="canManageCourses" class="btn btn-primary" @click="goToCreateCourse">
         + New Course
       </button>
     </div>
 
-    <div
-      style="
+    <div style="
         display:flex;
         gap:12px;
         margin-bottom:24px;
         flex-wrap:wrap;
         align-items:center;
-      "
-    >
+      ">
       <div style="position:relative;flex:1;min-width:200px">
-        <span
-          style="
+        <span style="
             position:absolute;
             left:12px;
             top:50%;
             transform:translateY(-50%);
             color:var(--text3);
-          "
-        >
+          ">
           🔍
         </span>
 
-        <input
-          v-model="search"
-          style="
+        <input v-model="search" style="
             width:100%;
             background:var(--surface);
             border:1px solid var(--border);
@@ -52,22 +42,17 @@
             padding:10px 14px 10px 36px;
             font-size:14px;
             color:var(--text);
-          "
-          placeholder="Search courses…"
-        />
+          " placeholder="Search courses…" />
       </div>
 
-      <select
-        v-model="selectedCategory"
-        style="
+      <select v-model="selectedCategory" style="
           background:var(--surface);
           border:1px solid var(--border);
           border-radius:10px;
           padding:10px 14px;
           font-size:14px;
           color:var(--text);
-        "
-      >
+        ">
         <option value="">All Categories</option>
         <option>Development</option>
         <option>Design</option>
@@ -79,19 +64,11 @@
       </select>
 
       <div class="tab-bar" style="margin:0">
-        <div
-          class="tab"
-          :class="{ active: viewMode === 'grid' }"
-          @click="viewMode = 'grid'"
-        >
+        <div class="tab" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">
           Grid
         </div>
 
-        <div
-          class="tab"
-          :class="{ active: viewMode === 'list' }"
-          @click="viewMode = 'list'"
-        >
+        <div class="tab" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
           List
         </div>
       </div>
@@ -110,12 +87,7 @@
     </div>
 
     <div v-else-if="viewMode === 'grid'" class="course-grid">
-      <div
-        v-for="course in filteredCourses"
-        :key="course.id"
-        class="course-card"
-        @click="goToCourse(course.id)"
-      >
+      <div v-for="course in filteredCourses" :key="course.id" class="course-card" @click="goToCourse(course.id)">
         <div class="course-thumb" :style="{ background: '#EEF1FF' }">
           <span>📚</span>
         </div>
@@ -147,27 +119,15 @@
             </span>
 
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <span
-                v-if="role !== 'student'"
-                class="badge"
-                :class="course.is_published ? 'badge-green' : 'badge-warn'"
-              >
+              <span v-if="canManageCourses" class="badge" :class="course.is_published ? 'badge-green' : 'badge-warn'">
                 {{ course.is_published ? 'published' : 'draft' }}
               </span>
 
-              <button
-                v-if="role !== 'student'"
-                class="btn btn-sm"
-                @click.stop="editCourse(course.id)"
-              >
+              <button v-if="canManageCourses" class="btn btn-sm" @click.stop="editCourse(course.id)">
                 Edit
               </button>
 
-              <button
-                v-if="role !== 'student'"
-                class="btn btn-sm btn-danger"
-                @click.stop="deleteCourse(course.id)"
-              >
+              <button v-if="canManageCourses" class="btn btn-sm btn-danger" @click.stop="deleteCourse(course.id)">
                 Delete
               </button>
             </div>
@@ -176,14 +136,8 @@
       </div>
     </div>
 
-    <CourseTable
-      v-else
-      :courses="filteredCourses"
-      :role="role"
-      @navigate="goToCourse"
-      @edit="editCourse"
-      @delete="deleteCourse"
-    />
+    <CourseTable v-else :courses="filteredCourses" :can-manage="canManageCourses" @navigate="goToCourse"
+      @edit="editCourse" @delete="deleteCourse" />
   </div>
 </template>
 
@@ -194,14 +148,12 @@ import axios from 'axios'
 
 import CourseTable from '../components/CourseTable.vue'
 
-const props = defineProps({
-  role: {
-    type: String,
-    default: ''
-  }
-})
-
 const router = useRouter()
+
+const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+const role = ref(storedUser.role || '')
+
+const canManageCourses = computed(() => role.value === 'teacher')
 
 const viewMode = ref('grid')
 const courses = ref([])
@@ -261,10 +213,12 @@ function goToCourse(id) {
 }
 
 function editCourse(id) {
+  if (!canManageCourses.value) return
   router.push(`/courses/${id}/edit`)
 }
 
 async function deleteCourse(id) {
+  if (!canManageCourses.value) return
   if (!confirm('Delete this course?')) return
 
   try {

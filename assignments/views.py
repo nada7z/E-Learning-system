@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
-from courses.models import Enrollment
+from courses.models import Enrollment, Course
 from .models import Assignment, Submission
 from .serializers import (
     AssignmentSerializer,
@@ -17,13 +17,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Teacher
         if hasattr(user, "teacher_profile"):
             return Assignment.objects.filter(
                 course__teacher=user.teacher_profile
             ).order_by("-created_at")
 
-        # Student
         if hasattr(user, "student_profile"):
             enrolled_courses = Enrollment.objects.filter(
                 student=user.student_profile
@@ -33,7 +31,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 course_id__in=enrolled_courses
             ).order_by("-created_at")
 
-        # Admin
         if getattr(user, "role", None) == "admin":
             return Assignment.objects.all().order_by("-created_at")
 
@@ -43,32 +40,37 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can create assignments."
+            raise PermissionDenied("Only teachers can create assignments.")
+
+        course_id = (
+            self.request.data.get("course")
+            or self.request.data.get("course_id")
+            or self.request.query_params.get("course")
+            or self.request.query_params.get("course_id")
+        )
+
+        if not course_id:
+            raise PermissionDenied("Course is required.")
+
+        try:
+            course = Course.objects.get(
+                id=course_id,
+                teacher=user.teacher_profile
             )
+        except Course.DoesNotExist:
+            raise PermissionDenied("You can only create assignments for your own courses.")
 
-        course = serializer.validated_data.get("course")
-
-        if course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only create assignments for your own courses."
-            )
-
-        serializer.save()
+        serializer.save(course=course)
 
     def perform_update(self, serializer):
         user = self.request.user
         assignment = self.get_object()
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can edit assignments."
-            )
+            raise PermissionDenied("Only teachers can edit assignments.")
 
         if assignment.course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only edit assignments from your own courses."
-            )
+            raise PermissionDenied("You can only edit assignments from your own courses.")
 
         serializer.save()
 
@@ -76,17 +78,12 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can delete assignments."
-            )
+            raise PermissionDenied("Only teachers can delete assignments.")
 
         if instance.course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only delete assignments from your own courses."
-            )
+            raise PermissionDenied("You can only delete assignments from your own courses.")
 
         instance.delete()
-
 
 class SubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer

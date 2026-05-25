@@ -1,46 +1,18 @@
 <template>
   <div class="create-course">
-    <CourseStepper
-      :step="step"
-      :total-steps="totalSteps"
-      :step-labels="stepLabels"
-    />
+    <CourseStepper :step="step" :total-steps="totalSteps" :step-labels="stepLabels" />
 
-    <CourseBasics
-      v-if="step === 1"
-      :form="form"
-      :errors="errors"
-      :categories="categories"
-      :levels="levels"
-      :languages="languages"
-      :thumbnail-options="thumbnailOptions"
-      :available-tags="availableTags"
-      @toggle-tag="toggleTag"
-    />
+    <CourseBasics v-if="step === 1" :form="form" :errors="errors" :categories="categories" :levels="levels"
+      :languages="languages" :thumbnail-options="thumbnailOptions" :available-tags="availableTags"
+      @toggle-tag="toggleTag" />
 
-    <CourseContent
-      v-if="step === 2"
-      :form="form"
-      :lesson-types="lessonTypes"
-      @add-lesson="addLesson"
-      @edit-lesson="editLesson"
-      @remove-lesson="removeLesson"
-      @add-objective="addObjective"
-      @remove-objective="removeObjective"
-    />
+    <CourseContent v-if="step === 2" :form="form" :lesson-types="lessonTypes" @add-lesson="addLesson"
+      @edit-lesson="editLesson" @remove-lesson="removeLesson" @add-objective="addObjective"
+      @remove-objective="removeObjective" />
 
-    <CourseSettings
-      v-if="step === 3"
-      :form="form"
-      :toggle-settings="toggleSettings"
-    />
+    <CourseSettings v-if="step === 3" :form="form" :toggle-settings="toggleSettings" />
 
-    <CourseReview
-      v-if="step === 4"
-      :form="form"
-      :checklist="checklist"
-      :selected-thumbnail-bg="selectedThumbnailBg"
-    />
+    <CourseReview v-if="step === 4" :form="form" :checklist="checklist" :selected-thumbnail-bg="selectedThumbnailBg" />
 
     <div v-if="step === 5" class="success-banner">
       <div class="success-icon">✓</div>
@@ -69,11 +41,7 @@
         Save draft
       </button>
 
-      <button
-        class="btn"
-        :class="step === totalSteps ? 'btn-success' : 'btn-primary'"
-        @click="handleNext"
-      >
+      <button class="btn" :class="step === totalSteps ? 'btn-success' : 'btn-primary'" @click="handleNext">
         {{ step === totalSteps ? 'Publish course' : 'Continue' }}
       </button>
     </div>
@@ -90,6 +58,7 @@
 import { computed, reactive, ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
+
 import CourseStepper from '@/components/course/CourseStepper.vue'
 import CourseBasics from '@/components/course/CourseBasics.vue'
 import CourseContent from '@/components/course/CourseContent.vue'
@@ -103,20 +72,12 @@ const router = useRouter()
 
 const isEditMode = computed(() => !!route.params.id)
 
-const emit = defineEmits([
-  'view-course',
-  'save-draft'
-])
+const emit = defineEmits(['view-course', 'save-draft'])
 
 const step = ref(1)
 const totalSteps = 4
 
-const stepLabels = [
-  'Basics',
-  'Content',
-  'Settings',
-  'Review'
-]
+const stepLabels = ['Basics', 'Content', 'Settings', 'Review']
 
 const form = reactive({
   title: '',
@@ -167,21 +128,9 @@ const categories = [
   'Business',
 ]
 
-const levels = [
-  'Beginner',
-  'Intermediate',
-  'Advanced',
-  'All levels'
-]
+const levels = ['Beginner', 'Intermediate', 'Advanced', 'All levels']
 
-const languages = [
-  'English',
-  'French',
-  'Arabic',
-  'Spanish',
-  'German',
-  'Portuguese'
-]
+const languages = ['English', 'French', 'Arabic', 'Spanish', 'German', 'Portuguese']
 
 const thumbnailOptions = [
   { icon: '💻', bg: '#EEF1FF' },
@@ -243,9 +192,7 @@ const toggleSettings = [
 ]
 
 const selectedThumbnailBg = computed(() => {
-  return thumbnailOptions.find(
-    (o) => o.icon === form.thumbnail
-  )?.bg || '#EEF1FF'
+  return thumbnailOptions.find((o) => o.icon === form.thumbnail)?.bg || '#EEF1FF'
 })
 
 const checklist = computed(() => [
@@ -284,59 +231,50 @@ const checklist = computed(() => [
 let lessonIdSeq = 0
 
 function addLesson(type) {
-  const defaults = {
-    video: {
-      title: 'New video lesson',
-      meta: 'Video',
-      content: '',
-      video_url: '',
-      video_file: null,
-    },
+  lessonIdSeq++
 
-    reading: {
-      title: 'New reading material',
-      meta: 'Reading',
-      content: '',
-      video_url: '',
-      video_file: null,
-    },
-
-    quiz: {
-      title: 'New quiz',
-      meta: 'Quiz',
-      content: '',
-      video_url: '',
-      video_file: null,
-      quiz: {
-        title: 'New quiz',
-        description: '',
-        passing_score: 50,
-        time_limit_minutes: null,
-        questions: [],
-      },
-    },
-
-    assignment: {
-      title: 'New assignment',
-      meta: 'Assignment',
-      content: '',
-      video_url: '',
-      video_file: null,
-      assignment: {
-        title: 'New assignment',
-        instructions: '',
-        due_date: '',
-        max_score: 100,
-      },
-    },
+  const lesson = {
+    id: Date.now() + lessonIdSeq,
+    type,
+    title: '',
+    content: '',
+    meta: type.charAt(0).toUpperCase() + type.slice(1),
+    isEditing: true,
   }
 
-  form.lessons.push({
-    id: ++lessonIdSeq,
-    type,
-    isEditing: true,
-    ...defaults[type],
-  })
+  if (type === 'quiz') {
+    lesson.title = 'New Quiz'
+    lesson.meta = 'Quiz'
+    lesson.quiz = {
+      passing_score: 50,
+      time_limit_minutes: null,
+      questions: [],
+    }
+  }
+
+  if (type === 'assignment') {
+    lesson.title = 'New Assignment'
+    lesson.meta = 'Assignment'
+    lesson.assignment = {
+      instructions: '',
+      due_date: '',
+      max_score: 100,
+    }
+  }
+
+  if (type === 'reading') {
+    lesson.title = 'New Reading'
+    lesson.meta = 'Reading'
+  }
+
+  if (type === 'video') {
+    lesson.title = 'New Video'
+    lesson.meta = 'Video'
+    lesson.video_url = ''
+    lesson.video_file = null
+  }
+
+  form.lessons.push(lesson)
 }
 
 function removeLesson(index) {
@@ -413,36 +351,28 @@ async function saveCourse() {
       quiz:
         lesson.type === 'quiz'
           ? {
-              title: lesson.title,
-              description: lesson.content || '',
-              passing_score: lesson.quiz.passing_score,
-              time_limit_minutes:
-                lesson.quiz.time_limit_minutes,
-              questions: lesson.quiz.questions,
-            }
+            title: lesson.title,
+            description: lesson.content || '',
+            passing_score: lesson.quiz?.passing_score || 50,
+            time_limit_minutes: lesson.quiz?.time_limit_minutes || null,
+            questions: lesson.quiz?.questions || [],
+          }
           : null,
 
       assignment:
         lesson.type === 'assignment'
           ? {
-              title: lesson.title,
-              instructions:
-                lesson.assignment.instructions,
-              due_date:
-                lesson.assignment.due_date || null,
-              max_score:
-                lesson.assignment.max_score,
-            }
+            title: lesson.title,
+            instructions: lesson.assignment?.instructions || lesson.content || '',
+            due_date: lesson.assignment?.due_date || null,
+            max_score: lesson.assignment?.max_score || 100,
+          }
           : null,
     })),
 
     is_free: form.pricing === 'free',
-    price: form.pricing === 'free'
-      ? 0
-      : form.price,
-
-    is_published:
-      form.settings.publishImmediately,
+    price: form.pricing === 'free' ? 0 : form.price,
+    is_published: form.settings.publishImmediately,
   }
 
   const token = localStorage.getItem('access_token')
@@ -452,7 +382,6 @@ async function saveCourse() {
     throw new Error('No access token found')
   }
 
-  // EDIT
   if (isEditMode.value) {
     const response = await axios.patch(
       `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
@@ -467,16 +396,11 @@ async function saveCourse() {
     return response.data
   }
 
-  // CREATE
-  const response = await axios.post(
-    'http://127.0.0.1:8000/api/courses/',
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  )
+  const response = await axios.post('http://127.0.0.1:8000/api/courses/', payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
 
   return response.data
 }
@@ -487,27 +411,28 @@ async function handleNext() {
 
   if (step.value < totalSteps) {
     step.value++
-  } else {
-    try {
-      const course = await createCourse()
+    return
+  }
 
-      showToast('Course created successfully')
-      step.value = 5
+  try {
+    const course = await saveCourse()
 
-      emit('save-draft', {
-        ...form,
-        id: course.id,
-      })
-    } catch (error) {
-      console.error(error)
-      showToast('Failed to create course')
-    }
+    showToast(isEditMode.value ? 'Course updated successfully' : 'Course created successfully')
+    step.value = 5
+
+    emit('save-draft', {
+      ...form,
+      id: course.id,
+    })
+  } catch (error) {
+    console.error(error)
+    showToast('Failed to save course')
   }
 }
 
 function saveDraft() {
   emit('save-draft', {
-    ...form
+    ...form,
   })
 
   showToast('Draft saved')
@@ -561,48 +486,94 @@ async function loadCourse() {
   try {
     const token = localStorage.getItem('access_token')
 
-    const response = await axios.get(
-      `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+    const [courseRes, quizzesRes, assignmentsRes] = await Promise.all([
+      axios.get(
+        `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      ),
 
-    const course = response.data
+      axios.get(
+        'http://127.0.0.1:8000/api/quizzes/',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      ),
 
-    form.title = course.title
-    form.description = course.description
-    form.category = course.category
-    form.level = course.level
-    form.language = course.language
-    form.duration = course.duration_hours
+      axios.get(
+        'http://127.0.0.1:8000/api/assignments/',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      ),
+    ])
+
+    const course = courseRes.data
+
+    form.title = course.title || ''
+    form.description = course.description || ''
+    form.category = course.category || ''
+    form.level = course.level || 'Beginner'
+    form.language = course.language || 'English'
+    form.duration = course.duration_hours || null
     form.tags = course.tags || []
 
-    form.pricing = course.is_free
-      ? 'free'
-      : 'paid'
+    form.pricing = course.is_free ? 'free' : 'paid'
+    form.price = course.price || null
+    form.settings.publishImmediately = course.is_published
 
-    form.price = course.price
+    const normalLessons = (course.lessons || []).map((lesson, index) => ({
+      id: lesson.id || index + 1,
+      type: lesson.lesson_type,
+      lesson_type: lesson.lesson_type,
+      title: lesson.title || '',
+      content: lesson.content || '',
+      meta: lesson.lesson_type
+        ? lesson.lesson_type.charAt(0).toUpperCase() + lesson.lesson_type.slice(1)
+        : '',
+      video_url: lesson.video_url || '',
+      video_file: null,
+      isEditing: false,
+    }))
 
-    form.settings.publishImmediately =
-      course.is_published
-
-    form.lessons = (course.lessons || []).map(
-      (lesson, index) => ({
-        id: lesson.id || index + 1,
-        type: lesson.lesson_type,
-        title: lesson.title,
-        content: lesson.content,
-        video_url: lesson.video_url,
-        video_file: null,
+    const quizLessons = (quizzesRes.data || [])
+      .filter((quiz) => Number(quiz.course) === Number(route.params.id))
+      .map((quiz) => ({
+        id: `quiz-${quiz.id}`,
+        type: 'quiz',
+        lesson_type: 'quiz',
+        title: quiz.title || '',
+        content: quiz.description || '',
+        meta: 'Quiz',
         isEditing: false,
+        quiz,
+      }))
 
-        quiz: lesson.quiz || null,
-        assignment: lesson.assignment || null,
-      })
-    )
+    const assignmentLessons = (assignmentsRes.data || [])
+      .filter((assignment) => Number(assignment.course) === Number(route.params.id))
+      .map((assignment) => ({
+        id: `assignment-${assignment.id}`,
+        type: 'assignment',
+        lesson_type: 'assignment',
+        title: assignment.title || '',
+        content: assignment.description || '',
+        meta: 'Assignment',
+        isEditing: false,
+        assignment,
+      }))
+
+    form.lessons = [
+      ...normalLessons,
+      ...quizLessons,
+      ...assignmentLessons,
+    ]
   } catch (error) {
     console.error(error)
     showToast('Failed to load course')
@@ -612,5 +583,4 @@ async function loadCourse() {
 onMounted(() => {
   loadCourse()
 })
-
 </script>

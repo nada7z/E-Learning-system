@@ -59,7 +59,8 @@
 
             <div class="quiz-meta-row">
               <span class="quiz-meta-item">📝 {{ q.questions_count }} Q</span>
-              <span class="quiz-meta-item">⏱ {{ q.time_limit_minutes ? q.time_limit_minutes + ' min' : 'No limit' }}</span>
+              <span class="quiz-meta-item">⏱ {{ q.time_limit_minutes ? q.time_limit_minutes + ' min' : 'No limit'
+                }}</span>
               <span class="quiz-meta-item">🏆 Pass {{ q.passing_score }}%</span>
               <span class="quiz-meta-item">👥 {{ q.attempts_count }} attempts</span>
             </div>
@@ -68,13 +69,10 @@
             <div v-if="q.attempts_count" class="pass-rate-row">
               <span class="pass-label">Pass rate</span>
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{
-                    width: q.pass_rate + '%',
-                    background: q.pass_rate >= 70 ? '#00897B' : q.pass_rate >= 40 ? '#F57C00' : '#C62828'
-                  }"
-                />
+                <div class="progress-fill" :style="{
+                  width: q.pass_rate + '%',
+                  background: q.pass_rate >= 70 ? '#00897B' : q.pass_rate >= 40 ? '#F57C00' : '#C62828'
+                }" />
               </div>
               <span class="pass-pct">{{ q.pass_rate }}%</span>
             </div>
@@ -108,8 +106,8 @@
       <template v-else>
         <div class="grade-stats">
           <div class="stat-pill">📬 {{ currentAttempts.length }} attempts</div>
-          <div class="stat-pill">✅ {{ currentAttempts.filter(a => a.passed).length }} passed</div>
-          <div class="stat-pill">❌ {{ currentAttempts.filter(a => !a.passed).length }} failed</div>
+          <div class="stat-pill">✅ {{currentAttempts.filter(a => a.passed).length}} passed</div>
+          <div class="stat-pill">❌ {{currentAttempts.filter(a => !a.passed).length}} failed</div>
           <div class="stat-pill">📊 Avg {{ avgScore }}</div>
         </div>
 
@@ -128,7 +126,8 @@
               <tr v-for="attempt in currentAttempts" :key="attempt.id">
                 <td>
                   <div class="student-cell">
-                    <div class="avatar-sm" :style="{ background: attempt.avatar_color + '22', color: attempt.avatar_color }">
+                    <div class="avatar-sm"
+                      :style="{ background: attempt.avatar_color + '22', color: attempt.avatar_color }">
                       {{ initials(attempt.student_name) }}
                     </div>
                     {{ attempt.student_name }}
@@ -148,15 +147,13 @@
                 <td>
                   <div class="mini-bar-wrap">
                     <div class="mini-bar">
-                      <div
-                        class="mini-fill"
-                        :style="{
-                          width: attempt.score + '%',
-                          background: attempt.passed ? '#00897B' : '#C62828'
-                        }"
-                      />
+                      <div class="mini-fill" :style="{
+                        width: attempt.score + '%',
+                        background: attempt.passed ? '#00897B' : '#C62828'
+                      }" />
                     </div>
-                    <span class="mini-pass-line" :style="{ left: currentQuiz.passing_score + '%' }" title="Pass threshold" />
+                    <span class="mini-pass-line" :style="{ left: currentQuiz.passing_score + '%' }"
+                      title="Pass threshold" />
                   </div>
                 </td>
               </tr>
@@ -183,23 +180,20 @@
             <div class="quiz-settings-strip">
               <div class="setting-item">
                 <label class="label">Passing score (%)</label>
-                <input v-model.number="builder.quiz.passing_score" class="input" type="number" min="0" max="100" style="width:90px" />
+                <input v-model.number="builder.quiz.passing_score" class="input" type="number" min="0" max="100"
+                  style="width:90px" />
               </div>
               <div class="setting-item">
                 <label class="label">Time limit (min)</label>
-                <input v-model.number="builder.quiz.time_limit_minutes" class="input" type="number" min="1" placeholder="None" style="width:90px" />
+                <input v-model.number="builder.quiz.time_limit_minutes" class="input" type="number" min="1"
+                  placeholder="None" style="width:90px" />
               </div>
               <div class="setting-item">
                 <label class="label">Published</label>
-                <div
-                  class="toggle"
-                  :class="{ on: builder.quiz.is_published }"
-                  role="switch"
-                  :aria-checked="builder.quiz.is_published"
-                  tabindex="0"
+                <div class="toggle" :class="{ on: builder.quiz.is_published }" role="switch"
+                  :aria-checked="builder.quiz.is_published" tabindex="0"
                   @click="builder.quiz.is_published = !builder.quiz.is_published"
-                  @keydown.enter="builder.quiz.is_published = !builder.quiz.is_published"
-                >
+                  @keydown.enter="builder.quiz.is_published = !builder.quiz.is_published">
                   <div class="toggle-knob" />
                 </div>
               </div>
@@ -207,12 +201,7 @@
 
             <!-- Question list -->
             <div class="q-list">
-              <div
-                v-for="(q, qi) in builder.questions"
-                :key="q._uid"
-                class="q-card"
-                :class="{ expanded: q._open }"
-              >
+              <div v-for="(q, qi) in builder.questions" :key="q._uid" class="q-card" :class="{ expanded: q._open }">
                 <!-- Question header row -->
                 <div class="q-header" @click="q._open = !q._open">
                   <div class="q-num">Q{{ qi + 1 }}</div>
@@ -222,8 +211,10 @@
                   </div>
                   <div class="q-pts">{{ q.points }} pt{{ q.points !== 1 ? 's' : '' }}</div>
                   <div class="q-header-actions" @click.stop>
-                    <button class="icon-btn" @click="moveQuestion(qi, -1)" :disabled="qi === 0" title="Move up">↑</button>
-                    <button class="icon-btn" @click="moveQuestion(qi, 1)"  :disabled="qi === builder.questions.length - 1" title="Move down">↓</button>
+                    <button class="icon-btn" @click="moveQuestion(qi, -1)" :disabled="qi === 0"
+                      title="Move up">↑</button>
+                    <button class="icon-btn" @click="moveQuestion(qi, 1)"
+                      :disabled="qi === builder.questions.length - 1" title="Move down">↓</button>
                     <button class="icon-btn danger" @click="removeQuestion(qi)" title="Delete">🗑</button>
                   </div>
                   <span class="chevron">{{ q._open ? '▲' : '▼' }}</span>
@@ -257,48 +248,31 @@
 
                   <!-- Multiple choice / True-False options -->
                   <template v-if="q.question_type !== 'short_answer'">
-                    <label class="label mt-3">Answer options <span class="hint-inline">(check the correct one)</span></label>
+                    <label class="label mt-3">Answer options <span class="hint-inline">(check the correct
+                        one)</span></label>
                     <div class="options-list">
-                      <div
-                        v-for="(opt, oi) in q.options"
-                        :key="oi"
-                        class="option-row"
-                        :class="{ 'option-correct': opt.is_correct }"
-                      >
+                      <div v-for="(opt, oi) in q.options" :key="oi" class="option-row"
+                        :class="{ 'option-correct': opt.is_correct }">
                         <label class="correct-check" :title="q.question_type === 'true_false' ? '' : 'Mark as correct'">
-                          <input
-                            type="radio"
-                            :name="'correct-' + q._uid"
-                            :checked="opt.is_correct"
-                            @change="setCorrect(q, oi)"
-                          />
+                          <input type="radio" :name="'correct-' + q._uid" :checked="opt.is_correct"
+                            @change="setCorrect(q, oi)" />
                         </label>
-                        <input
-                          v-model="opt.text"
-                          class="input"
-                          :placeholder="'Option ' + (oi + 1)"
-                          :readonly="q.question_type === 'true_false'"
-                        />
-                        <button
-                          v-if="q.question_type === 'multiple_choice'"
-                          class="icon-btn danger"
-                          :disabled="q.options.length <= 2"
-                          @click="removeOption(q, oi)"
-                          title="Remove option"
-                        >🗑</button>
+                        <input v-model="opt.text" class="input" :placeholder="'Option ' + (oi + 1)"
+                          :readonly="q.question_type === 'true_false'" />
+                        <button v-if="q.question_type === 'multiple_choice'" class="icon-btn danger"
+                          :disabled="q.options.length <= 2" @click="removeOption(q, oi)"
+                          title="Remove option">🗑</button>
                       </div>
                     </div>
-                    <button
-                      v-if="q.question_type === 'multiple_choice'"
-                      class="add-opt-btn"
-                      @click="addOption(q)"
-                    >+ Add option</button>
+                    <button v-if="q.question_type === 'multiple_choice'" class="add-opt-btn" @click="addOption(q)">+ Add
+                      option</button>
                   </template>
 
                   <!-- Short answer -->
                   <template v-else>
                     <div class="field mt-3" style="margin-bottom:0">
-                      <label class="label">Accepted answer <span class="hint-inline">(used for auto-grading)</span></label>
+                      <label class="label">Accepted answer <span class="hint-inline">(used for
+                          auto-grading)</span></label>
                       <input v-model="q.options[0].text" class="input" placeholder="Expected answer text…" />
                     </div>
                   </template>
@@ -315,7 +289,9 @@
           </div>
 
           <div class="builder-footer">
-            <span class="q-count-label">{{ builder.questions.length }} question{{ builder.questions.length !== 1 ? 's' : '' }}</span>
+            <span class="q-count-label">{{ builder.questions.length }} question{{ builder.questions.length !== 1 ? 's' :
+              ''
+              }}</span>
             <button class="btn btn-ghost" @click="builder.open = false">Cancel</button>
             <button class="btn btn-primary" @click="saveBuilder">Save quiz</button>
           </div>
@@ -342,12 +318,14 @@
             </div>
             <div class="field">
               <label class="label">Title <span class="req">*</span></label>
-              <input v-model="modal.form.title" class="input" :class="{ error: modal.errors.title }" placeholder="e.g. JavaScript Fundamentals Quiz" />
+              <input v-model="modal.form.title" class="input" :class="{ error: modal.errors.title }"
+                placeholder="e.g. JavaScript Fundamentals Quiz" />
               <span v-if="modal.errors.title" class="err-msg">⚠ {{ modal.errors.title }}</span>
             </div>
             <div class="field">
               <label class="label">Description</label>
-              <textarea v-model="modal.form.description" class="input" rows="3" placeholder="Short description for students…" />
+              <textarea v-model="modal.form.description" class="input" rows="3"
+                placeholder="Short description for students…" />
             </div>
             <div class="grid-3">
               <div class="field" style="margin-bottom:0">
@@ -356,19 +334,15 @@
               </div>
               <div class="field" style="margin-bottom:0">
                 <label class="label">Time limit (min)</label>
-                <input v-model.number="modal.form.time_limit_minutes" class="input" type="number" min="1" placeholder="None" />
+                <input v-model.number="modal.form.time_limit_minutes" class="input" type="number" min="1"
+                  placeholder="None" />
               </div>
               <div class="field" style="margin-bottom:0">
                 <label class="label">Published</label>
-                <div
-                  class="toggle mt-1"
-                  :class="{ on: modal.form.is_published }"
-                  role="switch"
-                  :aria-checked="modal.form.is_published"
-                  tabindex="0"
+                <div class="toggle mt-1" :class="{ on: modal.form.is_published }" role="switch"
+                  :aria-checked="modal.form.is_published" tabindex="0"
                   @click="modal.form.is_published = !modal.form.is_published"
-                  @keydown.enter="modal.form.is_published = !modal.form.is_published"
-                >
+                  @keydown.enter="modal.form.is_published = !modal.form.is_published">
                   <div class="toggle-knob" />
                 </div>
               </div>
@@ -394,7 +368,8 @@
           </div>
           <div class="modal-body">
             <p class="text-muted" style="font-size:14px">
-              "<strong>{{ deleteConfirm.target?.title }}</strong>" and all student attempt records will be permanently removed.
+              "<strong>{{ deleteConfirm.target?.title }}</strong>" and all student attempt records will be permanently
+              removed.
             </p>
           </div>
           <div class="modal-footer">
@@ -810,27 +785,51 @@ async function saveQuiz() {
 
   try {
     if (modal.editing) {
+
       await axios.patch(
         `http://127.0.0.1:8000/api/quizzes/${modal._id}/`,
         payload,
         authHeaders()
       )
 
-      modal.open = false
-      await fetchData()
       showToast('Quiz updated ✅')
+
     } else {
+
       const response = await axios.post(
         'http://127.0.0.1:8000/api/quizzes/',
         payload,
         authHeaders()
       )
 
-      modal.open = false
-      await fetchData()
+      const course = courses.value.find(
+        (c) => Number(c.id) === Number(modal.form.course)
+      )
+
+      if (course) {
+
+        if (!course.lessons) {
+          course.lessons = []
+        }
+
+        course.lessons.push({
+          id: response.data.id,
+          lesson_type: 'quiz',
+          title: response.data.title,
+          content: response.data.description || '',
+          quiz: response.data,
+        })
+      }
+
+      showToast('Quiz created ✅')
+
       openBuilder(response.data)
-      showToast('Quiz created — add your questions below')
     }
+
+    modal.open = false
+
+    await fetchData()
+
   } catch (error) {
     console.error(error)
     showToast('Failed to save quiz')

@@ -9,16 +9,13 @@
     </div>
 
     <div v-else-if="course" class="course-layout">
-      <!-- LEFT CONTENT -->
       <main class="course-main">
         <button class="back-btn" @click="$emit('navigate', 'courses')">
           ← Back to courses
         </button>
 
         <div class="course-header">
-          <p class="breadcrumb">
-            Courses / {{ course.category }}
-          </p>
+          <p class="breadcrumb">Courses / {{ course.category }}</p>
 
           <h1>{{ course.title }}</h1>
 
@@ -30,71 +27,70 @@
             <span>{{ course.level }}</span>
             <span>{{ course.language }}</span>
             <span>{{ course.duration_hours }} hours</span>
-            <span>{{ lessonCount }} lessons</span>
+            <span>{{ courseItems.length }} items</span>
+          </div>
+
+          <div v-if="isStudent" class="course-progress-box">
+            <div class="course-progress-top">
+              <span>Course progress</span>
+              <strong>{{ courseProgress }}%</strong>
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: courseProgress + '%' }"></div>
+            </div>
           </div>
         </div>
 
-        <div class="video-card">
-          <template v-if="selectedLesson?.lesson_type === 'video'">
-            <video
-              v-if="selectedLesson.video_file_url || selectedLesson.video_file"
-              class="lesson-video"
-              controls
-              :src="selectedLesson.video_file_url || selectedLesson.video_file"
-            ></video>
+        <div v-if="
+          selectedLesson?.lesson_type === 'video' &&
+          (
+            selectedLesson?.video_file_url ||
+            selectedLesson?.video_file ||
+            selectedLesson?.video_url
+          )
+        " class="video-card">
+          <video v-if="selectedLesson.video_file_url || selectedLesson.video_file" class="lesson-video" controls
+            :src="selectedLesson.video_file_url || selectedLesson.video_file"></video>
 
-            <iframe
-              v-else-if="selectedLesson.video_url"
-              class="lesson-video"
-              :src="formatVideoUrl(selectedLesson.video_url)"
-              allowfullscreen
-            ></iframe>
-
-            <div v-else class="video-placeholder">
-              No video added for this lesson.
-            </div>
-          </template>
-
-          <template v-else>
-            <div class="video-placeholder">
-              {{ lessonTypeLabel(selectedLesson?.lesson_type) }}
-            </div>
-          </template>
+          <iframe v-else-if="selectedLesson.video_url" class="lesson-video"
+            :src="formatVideoUrl(selectedLesson.video_url)" allowfullscreen></iframe>
         </div>
 
         <div class="lesson-content-card">
           <div class="tabs">
-            <button
-              v-for="(tab, index) in tabs"
-              :key="tab"
-              class="tab-btn"
-              :class="{ active: activeTab === index }"
-              @click="activeTab = index"
-            >
+            <button v-for="(tab, index) in tabs" :key="tab" class="tab-btn" :class="{ active: activeTab === index }"
+              @click="activeTab = index">
               {{ tab }}
             </button>
           </div>
 
-          <!-- OVERVIEW -->
           <section v-if="activeTab === 0">
-            <h2>{{ selectedLesson?.title || course.title }}</h2>
+            <div class="lesson-title-line">
+              <h2>{{ selectedLesson?.title || course.title }}</h2>
+
+              <button
+                v-if="isStudent && selectedLesson?.lesson_type !== 'quiz' && selectedLesson?.lesson_type !== 'assignment'"
+                class="lesson-complete-btn big" :class="{ completed: selectedLesson?.completed }"
+                @click.stop="toggleLessonComplete(selectedLesson)">
+                ✓
+              </button>
+            </div>
 
             <p class="lesson-text">
-              {{ selectedLesson?.content || 'No lesson content yet.' }}
+              {{ selectedLesson?.content || selectedLesson?.description || 'No content yet.' }}
             </p>
 
-            <div
-              v-if="selectedLesson?.lesson_type === 'assignment'"
-              class="activity-box"
-            >
+            <div v-if="selectedLesson?.lesson_type === 'assignment'" class="activity-box">
               <h3>Assignment</h3>
+
               <p>
-                {{ selectedLesson.assignment?.instructions || selectedLesson.content }}
+                {{ selectedLesson.assignment?.description || selectedLesson.content }}
               </p>
 
-              <p v-if="selectedLesson.assignment?.due_date">
-                <strong>Due date:</strong>
-                {{ formatDate(selectedLesson.assignment.due_date) }}
+              <p v-if="selectedLesson.assignment?.deadline">
+                <strong>Deadline:</strong>
+                {{ formatDate(selectedLesson.assignment.deadline) }}
               </p>
 
               <p>
@@ -103,97 +99,83 @@
               </p>
             </div>
 
-            <div
-              v-if="selectedLesson?.lesson_type === 'quiz'"
-              class="activity-box"
-            >
+            <div v-if="selectedLesson?.lesson_type === 'quiz'" class="activity-box">
               <h3>Quiz</h3>
 
               <p>
-                Passing score:
+                {{ selectedLesson.quiz?.description || selectedLesson.content }}
+              </p>
+
+              <p>
+                <strong>Passing score:</strong>
                 {{ selectedLesson.quiz?.passing_score || 50 }}%
               </p>
 
               <p v-if="selectedLesson.quiz?.time_limit_minutes">
-                Time limit:
+                <strong>Time limit:</strong>
                 {{ selectedLesson.quiz.time_limit_minutes }} minutes
               </p>
 
               <p>
-                Questions:
+                <strong>Questions:</strong>
                 {{ selectedLesson.quiz?.questions?.length || 0 }}
               </p>
             </div>
           </section>
 
-          <!-- RESOURCES -->
           <section v-if="activeTab === 1">
             <h2>Resources</h2>
-            <p class="lesson-text">
-              Resources are not added yet.
-            </p>
+            <p class="lesson-text">Resources are not added yet.</p>
           </section>
 
-          <!-- DISCUSSIONS -->
           <section v-if="activeTab === 2">
             <h2>Discussions</h2>
-            <p class="lesson-text">
-              Discussion forum is not implemented yet.
-            </p>
+            <p class="lesson-text">Discussion forum is not implemented yet.</p>
           </section>
 
-          <!-- QUIZ -->
           <section v-if="activeTab === 3">
             <template v-if="selectedLesson?.lesson_type === 'quiz'">
               <h2>{{ selectedLesson.quiz?.title || selectedLesson.title }}</h2>
 
-              <div
-                v-for="(question, qIndex) in selectedLesson.quiz?.questions || []"
-                :key="question.id || qIndex"
-                class="question-card"
-              >
-                <h3>
-                  Question {{ qIndex + 1 }}
-                </h3>
-
+              <div v-for="(question, qIndex) in selectedLesson.quiz?.questions || []" :key="question.id || qIndex"
+                class="question-card">
+                <h3>Question {{ qIndex + 1 }}</h3>
                 <p>{{ question.text }}</p>
 
-                <div
-                  v-for="option in question.options || []"
-                  :key="option.id || option.text"
-                  class="option"
-                >
+                <div v-for="option in question.options || []" :key="option.id || option.text" class="option">
                   {{ option.text }}
                 </div>
               </div>
             </template>
 
             <p v-else class="lesson-text">
-              Select a quiz lesson to see quiz questions.
+              Select a quiz from course content.
             </p>
           </section>
         </div>
       </main>
 
-      <!-- RIGHT SIDEBAR -->
       <aside class="course-sidebar">
         <div class="sidebar-card">
           <h3>Course content</h3>
 
           <p class="small-muted">
-            {{ lessonCount }} lessons
+            {{ courseItems.length }} items
           </p>
 
           <div class="lesson-list">
-            <button
-              v-for="lesson in course.lessons || []"
-              :key="lesson.id"
-              class="lesson-row"
-              :class="{ active: selectedLesson?.id === lesson.id }"
-              @click="selectedLesson = lesson"
-            >
-              <div class="lesson-number">
-                {{ lesson.order_number }}
+            <button v-for="(lesson, index) in courseItems" :key="lesson.uid" class="lesson-row" :class="{
+              active: selectedLesson?.uid === lesson.uid,
+              completed: lesson.completed
+            }" @click="selectedLesson = lesson">
+              <button v-if="isStudent && lesson.lesson_type !== 'quiz' && lesson.lesson_type !== 'assignment'"
+                class="lesson-complete-btn" :class="{ completed: lesson.completed }"
+                @click.stop="toggleLessonComplete(lesson)">
+                ✓
+              </button>
+
+              <div v-else class="lesson-number">
+                {{ index + 1 }}
               </div>
 
               <div class="lesson-info">
@@ -245,21 +227,71 @@ const route = useRoute()
 defineEmits(['navigate', 'toast'])
 
 const course = ref(null)
+const quizzes = ref([])
+const assignments = ref([])
 const selectedLesson = ref(null)
 const loading = ref(true)
 const error = ref('')
 const activeTab = ref(0)
+const courseProgress = ref(0)
 
-const tabs = [
-  'Overview',
-  'Resources',
-  'Discussions',
-  'Quiz',
-]
+const tabs = ['Overview', 'Resources', 'Discussions', 'Quiz']
 
-const lessonCount = computed(() => {
-  return course.value?.lessons?.length || 0
+const user = computed(() => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}')
+  } catch {
+    return {}
+  }
 })
+
+const isStudent = computed(() => {
+  return user.value?.role === 'student'
+})
+
+const courseItems = computed(() => {
+  const lessons = (course.value?.lessons || []).map((lesson) => ({
+    ...lesson,
+    uid: `lesson-${lesson.id}`,
+  }))
+
+  const quizItems = quizzes.value.map((quiz) => ({
+    uid: `quiz-${quiz.id}`,
+    id: quiz.id,
+    title: quiz.title,
+    content: quiz.description || '',
+    lesson_type: 'quiz',
+    quiz,
+  }))
+
+  const assignmentItems = assignments.value.map((assignment) => ({
+    uid: `assignment-${assignment.id}`,
+    id: assignment.id,
+    title: assignment.title,
+    content: assignment.description || '',
+    lesson_type: 'assignment',
+    assignment,
+  }))
+
+  return [...lessons, ...quizItems, ...assignmentItems]
+})
+
+function calculateLocalCourseProgress() {
+  const lessonsOnly = (course.value?.lessons || [])
+
+  if (!lessonsOnly.length) {
+    courseProgress.value = 0
+    return
+  }
+
+  const completedLessons = lessonsOnly.filter((lesson) => lesson.completed).length
+
+  courseProgress.value = Math.round(
+    (completedLessons / lessonsOnly.length) * 100
+  )
+
+  course.value.progress = courseProgress.value
+}
 
 async function fetchCourse() {
   loading.value = true
@@ -268,8 +300,56 @@ async function fetchCourse() {
   try {
     const token = localStorage.getItem('access_token')
 
-    const response = await axios.get(
-      `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    }
+
+    const [courseRes, quizzesRes, assignmentsRes] = await Promise.all([
+      axios.get(`http://127.0.0.1:8000/api/courses/${route.params.id}/`, {
+        headers,
+      }),
+      axios.get('http://127.0.0.1:8000/api/quizzes/', {
+        headers,
+      }),
+      axios.get('http://127.0.0.1:8000/api/assignments/', {
+        headers,
+      }),
+    ])
+
+    course.value = courseRes.data
+
+    quizzes.value = (quizzesRes.data || []).filter(
+      (quiz) => Number(quiz.course) === Number(route.params.id)
+    )
+
+    assignments.value = (assignmentsRes.data || []).filter(
+      (assignment) => Number(assignment.course) === Number(route.params.id)
+    )
+
+    calculateLocalCourseProgress()
+
+    selectedLesson.value = courseItems.value.length
+      ? courseItems.value[0]
+      : null
+  } catch (err) {
+    console.error(err)
+    error.value = 'Failed to load course.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function toggleLessonComplete(lesson) {
+  if (!lesson || lesson.lesson_type === 'quiz' || lesson.lesson_type === 'assignment') {
+    return
+  }
+
+  try {
+    const token = localStorage.getItem('access_token')
+
+    const response = await axios.post(
+      `http://127.0.0.1:8000/api/lessons/${lesson.id}/toggle_complete/`,
+      {},
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -277,17 +357,21 @@ async function fetchCourse() {
       }
     )
 
-    course.value = response.data
+    lesson.completed = response.data.lesson_completed
 
-    selectedLesson.value =
-      course.value.lessons && course.value.lessons.length
-        ? course.value.lessons[0]
-        : null
+    const realLesson = course.value.lessons.find(
+      (item) => Number(item.id) === Number(lesson.id)
+    )
+
+    if (realLesson) {
+      realLesson.completed = response.data.lesson_completed
+    }
+
+    courseProgress.value = response.data.course_progress
+    course.value.progress = response.data.course_progress
   } catch (err) {
     console.error(err)
-    error.value = 'Failed to load course.'
-  } finally {
-    loading.value = false
+    alert('Could not update lesson progress.')
   }
 }
 
@@ -315,7 +399,6 @@ function lessonTypeIcon(type) {
 
 function formatDate(value) {
   if (!value) return ''
-
   return new Date(value).toLocaleString()
 }
 
@@ -416,6 +499,41 @@ onMounted(fetchCourse)
   font-weight: 600;
 }
 
+.course-progress-box {
+  margin-top: 22px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.course-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.course-progress-top strong {
+  color: #111827;
+}
+
+.progress-bar {
+  height: 9px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4f46e5;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
 .video-card {
   background: #111827;
   border-radius: 20px;
@@ -429,13 +547,6 @@ onMounted(fetchCourse)
   height: 360px;
   border: none;
   object-fit: cover;
-}
-
-.video-placeholder {
-  color: white;
-  font-size: 24px;
-  font-weight: 700;
-  margin: auto;
 }
 
 .lesson-content-card {
@@ -465,6 +576,13 @@ onMounted(fetchCourse)
 .tab-btn.active {
   background: #eef2ff;
   color: #4f46e5;
+}
+
+.lesson-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .lesson-content-card h2 {
@@ -527,6 +645,7 @@ onMounted(fetchCourse)
   border: 1px solid #e5e7eb;
   background: white;
   display: flex;
+  align-items: center;
   gap: 12px;
   padding: 12px;
   border-radius: 14px;
@@ -539,14 +658,48 @@ onMounted(fetchCourse)
   background: #eef2ff;
 }
 
-.lesson-number {
+.lesson-row.completed {
+  border-color: #10b981;
+}
+
+.lesson-number,
+.lesson-complete-btn {
   width: 32px;
   height: 32px;
-  background: #e5e7eb;
+  min-width: 32px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.lesson-number {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.lesson-complete-btn {
+  border: 2px solid #4f46e5;
+  background: white;
+  color: #4f46e5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lesson-complete-btn:hover {
+  transform: scale(1.06);
+}
+
+.lesson-complete-btn.completed {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.lesson-complete-btn.big {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
 }
 
 .lesson-info {

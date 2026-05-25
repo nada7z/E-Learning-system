@@ -17,21 +17,14 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Teacher sees only their own courses
         if hasattr(user, "teacher_profile"):
-            return Course.objects.filter(
-                teacher=user.teacher_profile
-            ).order_by("-created_at")
+            return Course.objects.filter(teacher=user.teacher_profile).order_by("-created_at")
 
-        # Admin sees everything
         if getattr(user, "role", None) == "admin":
             return Course.objects.all().order_by("-created_at")
 
-        # Student sees only published courses
         if getattr(user, "role", None) == "student":
-            return Course.objects.filter(
-                is_published=True
-            ).order_by("-created_at")
+            return Course.objects.filter(is_published=True).order_by("-created_at")
 
         return Course.objects.none()
 
@@ -39,13 +32,33 @@ class CourseViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can create courses."
-            )
+            raise PermissionDenied("Only teachers can create courses.")
 
-        serializer.save(
-            teacher=user.teacher_profile
-        )
+        serializer.save(teacher=user.teacher_profile)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+
+        if not hasattr(user, "teacher_profile"):
+            raise PermissionDenied("Only teachers can update courses.")
+
+        course = self.get_object()
+
+        if course.teacher != user.teacher_profile:
+            raise PermissionDenied("You can only update your own courses.")
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+
+        if not hasattr(user, "teacher_profile"):
+            raise PermissionDenied("Only teachers can delete courses.")
+
+        if instance.teacher != user.teacher_profile:
+            raise PermissionDenied("You can only delete your own courses.")
+
+        instance.delete()
 
 class PublishedCoursesView(APIView):
     permission_classes = [permissions.IsAuthenticated]

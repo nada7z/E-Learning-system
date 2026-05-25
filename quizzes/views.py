@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
-from courses.models import Enrollment
+from courses.models import Enrollment, Course
 from .models import Quiz, QuizAttempt
 from .serializers import QuizSerializer, QuizAttemptSerializer
 
@@ -38,32 +38,37 @@ class QuizViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can create quizzes."
+            raise PermissionDenied("Only teachers can create quizzes.")
+
+        course_id = (
+            self.request.data.get("course")
+            or self.request.data.get("course_id")
+            or self.request.query_params.get("course")
+            or self.request.query_params.get("course_id")
+        )
+
+        if not course_id:
+            raise PermissionDenied("Course is required.")
+
+        try:
+            course = Course.objects.get(
+                id=course_id,
+                teacher=user.teacher_profile
             )
+        except Course.DoesNotExist:
+            raise PermissionDenied("You can only create quizzes for your own courses.")
 
-        course = serializer.validated_data.get("course")
-
-        if course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only create quizzes for your own courses."
-            )
-
-        serializer.save()
+        serializer.save(course=course)
 
     def perform_update(self, serializer):
         user = self.request.user
         quiz = self.get_object()
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can edit quizzes."
-            )
+            raise PermissionDenied("Only teachers can edit quizzes.")
 
         if quiz.course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only edit quizzes from your own courses."
-            )
+            raise PermissionDenied("You can only edit quizzes from your own courses.")
 
         serializer.save()
 
@@ -71,14 +76,10 @@ class QuizViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if not hasattr(user, "teacher_profile"):
-            raise PermissionDenied(
-                "Only teachers can delete quizzes."
-            )
+            raise PermissionDenied("Only teachers can delete quizzes.")
 
         if instance.course.teacher != user.teacher_profile:
-            raise PermissionDenied(
-                "You can only delete quizzes from your own courses."
-            )
+            raise PermissionDenied("You can only delete quizzes from your own courses.")
 
         instance.delete()
 
