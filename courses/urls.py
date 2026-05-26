@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    ContinueLearningView,
     CourseViewSet,
     PublishedCoursesView,
     EnrollCourseView
@@ -22,4 +23,5 @@ urlpatterns = router.urls + [
         EnrollCourseView.as_view(),
         name="enroll-course",
     ),
+    path("continue-learning/", ContinueLearningView.as_view(), name="continue-learning"),
 ]

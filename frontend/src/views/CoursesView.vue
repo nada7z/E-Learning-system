@@ -31,7 +31,7 @@
             transform:translateY(-50%);
             color:var(--text3);
           ">
-          🔍
+          <Search :size="16" />
         </span>
 
         <input v-model="search" style="
@@ -88,8 +88,11 @@
 
     <div v-else-if="viewMode === 'grid'" class="course-grid">
       <div v-for="course in filteredCourses" :key="course.id" class="course-card" @click="goToCourse(course.id)">
-        <div class="course-thumb" :style="{ background: '#EEF1FF' }">
-          <span>📚</span>
+        <div class="course-thumb" :style="{ background: course.thumbnail ? 'transparent' : '#EEF1FF' }">
+          <img v-if="course.thumbnail && !brokenImages[course.id]" :src="course.thumbnail" class="course-thumb-img"
+            @error="brokenImages[course.id] = true" />
+
+          <span v-else>📚</span>
         </div>
 
         <div class="course-body">
@@ -108,9 +111,15 @@
           </div>
 
           <div class="course-meta">
-            <span>👤 {{ course.teacher_name || 'Teacher' }}</span>
-            <span>📖 {{ course.lessons_count || 0 }} lessons</span>
-            <span>⏱ {{ course.duration_hours || 0 }}h</span>
+            <span>
+              <User :size="14" /> {{ course.teacher_name || 'Teacher' }}
+            </span>
+            <span>
+              <BookOpen :size="14" /> {{ course.lessons_count || 0 }} lessons
+            </span>
+            <span>
+              <Clock3 :size="14" /> {{ course.duration_hours || 0 }}h
+            </span>
           </div>
 
           <div class="course-footer">
@@ -145,9 +154,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-
 import CourseTable from '../components/CourseTable.vue'
+import {
+  BookOpen,
+  Clock3,
+  Search,
+  User,
+  Pencil,
+  Trash2,
+  Plus,
+} from 'lucide-vue-next'
 
+const brokenImages = ref({})
 const router = useRouter()
 
 const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -242,7 +260,32 @@ async function deleteCourse(id) {
   }
 }
 
+function getThumbnailUrl(thumbnail) {
+  if (!thumbnail) return null
+  if (thumbnail.startsWith('http')) return thumbnail
+  return `http://127.0.0.1:8000${thumbnail}`
+}
+
 onMounted(() => {
   fetchCourses()
 })
 </script>
+
+<style scoped>
+.course-thumb {
+  width: 100%;
+  height: 185px;
+  overflow: hidden;
+  background: #eef1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.course-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+</style>

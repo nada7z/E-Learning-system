@@ -19,25 +19,33 @@
     <!-- KPI cards -->
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-icon" style="background:#EEF1FF">📚</div>
+        <div class="stat-icon" style="background:#EEF1FF">
+          <BookOpen :size="20" />
+        </div>
         <div class="stat-val">{{ kpi.totalCourses }}</div>
         <div class="stat-label">Published Courses</div>
         <div class="stat-trend trend-up">↑ 1 this month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#E0F2F1">👥</div>
+        <div class="stat-icon" style="background:#E0F2F1">
+          <Users :size="20" />
+        </div>
         <div class="stat-val">{{ kpi.totalEnrolled }}</div>
         <div class="stat-label">Total Enrolled</div>
         <div class="stat-trend trend-up">↑ 48 this month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#EDE9FE">⭐</div>
+        <div class="stat-icon" style="background:#EDE9FE">
+          <Star :size="20" />
+        </div>
         <div class="stat-val">{{ kpi.avgRating }}</div>
         <div class="stat-label">Avg Rating</div>
         <div class="stat-trend trend-up">↑ 0.2 this quarter</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#FFF3E0">🎓</div>
+        <div class="stat-icon" style="background:#FFF3E0">
+          <GraduationCap :size="25" />
+        </div>
         <div class="stat-val">{{ kpi.avgCompletion }}%</div>
         <div class="stat-label">Avg Completion</div>
         <div class="stat-trend trend-dn">↓ 2.1% this week</div>
@@ -140,7 +148,8 @@
               <td>
                 <div class="progress-cell">
                   <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: c.completion + '%', background: progressColor(c.completion) }"></div>
+                    <div class="progress-fill"
+                      :style="{ width: c.completion + '%', background: progressColor(c.completion) }"></div>
                   </div>
                   <span class="progress-pct">{{ c.completion }}%</span>
                 </div>
@@ -151,7 +160,8 @@
               <td>
                 <div class="progress-cell">
                   <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: c.pass_rate + '%', background: passColor(c.pass_rate) }"></div>
+                    <div class="progress-fill"
+                      :style="{ width: c.pass_rate + '%', background: passColor(c.pass_rate) }"></div>
                   </div>
                   <span class="progress-pct">{{ c.pass_rate }}%</span>
                 </div>
@@ -231,7 +241,8 @@
                 <div v-for="(l, i) in panel.lessons" :key="i" class="lesson-bar-row">
                   <span class="lesson-bar-label">{{ l.title }}</span>
                   <div class="lesson-bar-track">
-                    <div class="lesson-bar-fill" :style="{ width: l.pct + '%', background: progressColor(l.pct) }"></div>
+                    <div class="lesson-bar-fill" :style="{ width: l.pct + '%', background: progressColor(l.pct) }">
+                    </div>
                   </div>
                   <span class="lesson-bar-pct">{{ l.pct }}%</span>
                 </div>
@@ -269,6 +280,16 @@
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import axios from 'axios'
+import {
+  BookOpen,
+  Users,
+  GraduationCap,
+  ClipboardList,
+  Star,
+  Search,
+  Download,
+  TrendingUp,
+} from 'lucide-vue-next'
 
 const enrollChart = ref(null)
 const completionChart = ref(null)
@@ -426,30 +447,30 @@ function getCourseStats(course, index) {
 
   const avgQuizScore = courseAttempts.length
     ? Math.round(
-        courseAttempts.reduce(
-          (sum, attempt) => sum + Number(attempt.score || 0),
-          0
-        ) / courseAttempts.length
-      )
+      courseAttempts.reduce(
+        (sum, attempt) => sum + Number(attempt.score || 0),
+        0
+      ) / courseAttempts.length
+    )
     : 0
 
   const passRate = courseAttempts.length
     ? Math.round(
-        (courseAttempts.filter((attempt) => attempt.passed).length /
-          courseAttempts.length) *
-          100
-      )
+      (courseAttempts.filter((attempt) => attempt.passed).length /
+        courseAttempts.length) *
+      100
+    )
     : 0
 
   const completion = enrolled
     ? Math.round(
-        Math.min(
-          100,
-          ((courseSubmissions.length + courseAttempts.length) /
-            Math.max(enrolled, 1)) *
-            20
-        )
+      Math.min(
+        100,
+        ((courseSubmissions.length + courseAttempts.length) /
+          Math.max(enrolled, 1)) *
+        20
       )
+    )
     : 0
 
   const price = Number(course.price || 0)

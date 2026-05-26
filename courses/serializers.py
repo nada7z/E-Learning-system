@@ -42,6 +42,8 @@ class QuizNestedSerializer(serializers.Serializer):
         allow_null=True
     )
 
+    is_final_exam = serializers.BooleanField(default=False)
+
     questions = QuestionNestedSerializer(
         many=True,
         required=False
@@ -138,6 +140,8 @@ class LessonCreateSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.ImageField(required=False, allow_null=True)
+
     lessons = LessonCreateSerializer(
         many=True,
         required=False
@@ -178,6 +182,21 @@ class CourseSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if instance.thumbnail:
+            data["thumbnail"] = (
+                request.build_absolute_uri(instance.thumbnail.url)
+                if request
+                else instance.thumbnail.url
+            )
+        else:
+            data["thumbnail"] = None
+
+        return data
 
     def get_teacher_name(self, obj):
         return str(obj.teacher)
@@ -221,22 +240,13 @@ class CourseSerializer(serializers.ModelSerializer):
 
             lesson = Lesson.objects.create(
                 course=course,
-                title=lesson_data.get(
-                    "title",
-                    f"Lesson {index}"
-                ),
+                title=lesson_data.get("title", f"Lesson {index}"),
                 content=lesson_data.get("content", ""),
                 video_url=lesson_data.get("video_url"),
                 video_file=lesson_data.get("video_file"),
                 lesson_type=lesson_type,
-                order_number=lesson_data.get(
-                    "order_number",
-                    index
-                ),
-                is_preview=lesson_data.get(
-                    "is_preview",
-                    False
-                ),
+                order_number=lesson_data.get("order_number", index),
+                is_preview=lesson_data.get("is_preview", False),
             )
 
             if lesson_type == "quiz" and quiz_data:
@@ -245,13 +255,9 @@ class CourseSerializer(serializers.ModelSerializer):
                     lesson=lesson,
                     title=quiz_data.get("title") or lesson.title,
                     description=quiz_data.get("description", ""),
-                    passing_score=quiz_data.get(
-                        "passing_score",
-                        50
-                    ),
-                    time_limit_minutes=quiz_data.get(
-                        "time_limit_minutes"
-                    ),
+                    passing_score=quiz_data.get("passing_score", 50),
+                    time_limit_minutes=quiz_data.get("time_limit_minutes"),
+                    is_final_exam=quiz_data.get("is_final_exam", False),
                     is_published=True,
                 )
 
@@ -259,10 +265,7 @@ class CourseSerializer(serializers.ModelSerializer):
                     quiz_data.get("questions", []),
                     start=1
                 ):
-                    options_data = question_data.pop(
-                        "options",
-                        []
-                    )
+                    options_data = question_data.pop("options", [])
 
                     question = Question.objects.create(
                         quiz=quiz,
@@ -282,43 +285,46 @@ class CourseSerializer(serializers.ModelSerializer):
                         AnswerOption.objects.create(
                             question=question,
                             text=option_data.get("text", ""),
-                            is_correct=option_data.get(
-                                "is_correct",
-                                False
-                            ),
+                            is_correct=option_data.get("is_correct", False),
                         )
 
             if lesson_type == "assignment" and assignment_data:
                 Assignment.objects.create(
                     course=course,
                     lesson=lesson,
-                    title=assignment_data.get("title")
-                    or lesson.title,
-
-                    instructions=assignment_data.get(
-                        "instructions",
-                        ""
-                    ),
-
-                    due_date=assignment_data.get(
-                        "due_date"
-                    ),
-
-                    max_score=assignment_data.get(
-                        "max_score",
-                        100
-                    ),
+                    title=assignment_data.get("title") or lesson.title,
+                    instructions=assignment_data.get("instructions", ""),
+                    due_date=assignment_data.get("due_date"),
+                    max_score=assignment_data.get("max_score", 100),
                 )
 
         return course
+
+    def update(self, instance, validated_data):
+        request = self.context.get("request")
+
+        if request:
+            remove_thumbnail = request.data.get("remove_thumbnail")
+
+            if remove_thumbnail == "true":
+                if instance.thumbnail:
+                    instance.thumbnail.delete(save=False)
+
+                instance.thumbnail = None
+
+        return super().update(instance, validated_data)
     
 class CourseListSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.SerializerMethodField()
+
     teacher_name = serializers.SerializerMethodField()
     lessons_count = serializers.SerializerMethodField()
+    enrolled_count = serializers.SerializerMethodField()
     is_enrolled = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
+
         fields = [
             "id",
             "title",
@@ -331,16 +337,31 @@ class CourseListSerializer(serializers.ModelSerializer):
             "has_certificate",
             "teacher_name",
             "lessons_count",
+            "enrolled_count",
             "is_free",
             "price",
             "is_enrolled",
         ]
 
+    def get_thumbnail(self, obj):
+        request = self.context.get("request")
+
+        if obj.thumbnail:
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+
+            return obj.thumbnail.url
+
+        return None
+
     def get_teacher_name(self, obj):
-        return f"{obj.teacher.first_name} {obj.teacher.last_name}".strip()
+        return str(obj.teacher)
 
     def get_lessons_count(self, obj):
         return obj.lessons.count()
+
+    def get_enrolled_count(self, obj):
+        return Enrollment.objects.filter(course=obj).count()
 
     def get_is_enrolled(self, obj):
         request = self.context.get("request")

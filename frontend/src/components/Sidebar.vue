@@ -102,7 +102,7 @@ const studentMain = [
   },
 
   {
-    page: 'course-detail',
+    page: 'continue-learning',
     icon: PlayCircle,
     label: 'Continue Learning'
   },

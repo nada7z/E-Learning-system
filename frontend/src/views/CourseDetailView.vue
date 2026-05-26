@@ -69,10 +69,13 @@
             <div class="lesson-title-line">
               <h2>{{ selectedLesson?.title || course.title }}</h2>
 
-              <button
-                v-if="isStudent && selectedLesson?.lesson_type !== 'quiz' && selectedLesson?.lesson_type !== 'assignment'"
-                class="lesson-complete-btn big" :class="{ completed: selectedLesson?.completed }"
-                @click.stop="toggleLessonComplete(selectedLesson)">
+              <button v-if="
+                isStudent &&
+                selectedLesson &&
+                selectedLesson.lesson_type !== 'quiz' &&
+                selectedLesson.lesson_type !== 'assignment'
+              " class="lesson-complete-btn big" :class="{ completed: isCompleted(selectedLesson) }"
+                @click="markCompleted(selectedLesson)">
                 ✓
               </button>
             </div>
@@ -81,8 +84,17 @@
               {{ selectedLesson?.content || selectedLesson?.description || 'No content yet.' }}
             </p>
 
+            <button v-if="
+              isStudent &&
+              selectedLesson &&
+              selectedLesson.lesson_type !== 'quiz' &&
+              selectedLesson.lesson_type !== 'assignment'
+            " class="primary-action" :disabled="isCompleted(selectedLesson)" @click="markCompleted(selectedLesson)">
+              {{ isCompleted(selectedLesson) ? 'Completed ✅' : 'Mark as completed' }}
+            </button>
+
             <div v-if="selectedLesson?.lesson_type === 'assignment'" class="activity-box">
-              <h3>Assignment</h3>
+              <h3>Submit assignment</h3>
 
               <p>
                 {{ selectedLesson.assignment?.description || selectedLesson.content }}
@@ -97,10 +109,20 @@
                 <strong>Max score:</strong>
                 {{ selectedLesson.assignment?.max_score || 100 }}
               </p>
+
+              <textarea v-model="assignmentForm.text_answer" class="answer-box"
+                placeholder="Write your answer..."></textarea>
+
+              <input class="file-input" type="file" @change="handleAssignmentFile" />
+
+              <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)"
+                @click="submitAssignment">
+                {{ isCompleted(selectedLesson) ? 'Submitted ✅' : submitting ? 'Submitting...' : 'Submit assignment' }}
+              </button>
             </div>
 
             <div v-if="selectedLesson?.lesson_type === 'quiz'" class="activity-box">
-              <h3>Quiz</h3>
+              <h3>Answer quiz</h3>
 
               <p>
                 {{ selectedLesson.quiz?.description || selectedLesson.content }}
@@ -111,15 +133,27 @@
                 {{ selectedLesson.quiz?.passing_score || 50 }}%
               </p>
 
-              <p v-if="selectedLesson.quiz?.time_limit_minutes">
-                <strong>Time limit:</strong>
-                {{ selectedLesson.quiz.time_limit_minutes }} minutes
-              </p>
+              <div v-for="(question, qIndex) in selectedLesson.quiz?.questions || []" :key="question.id"
+                class="question-card">
+                <h3>Question {{ qIndex + 1 }}</h3>
+                <p>{{ question.text }}</p>
 
-              <p>
-                <strong>Questions:</strong>
-                {{ selectedLesson.quiz?.questions?.length || 0 }}
-              </p>
+                <textarea v-if="question.question_type === 'short_answer'"
+                  v-model="quizAnswers[question.id].text_answer" class="answer-box"
+                  placeholder="Write your answer..."></textarea>
+
+                <label v-else v-for="option in question.options || []" :key="option.id" class="option" :class="{
+                  selected: quizAnswers[question.id]?.selected_option === option.id
+                }">
+                  <input type="radio" :name="`question-${question.id}`" :value="option.id"
+                    v-model="quizAnswers[question.id].selected_option" />
+                  {{ option.text }}
+                </label>
+              </div>
+
+              <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)" @click="submitQuiz">
+                {{ isCompleted(selectedLesson) ? 'Quiz submitted ✅' : submitting ? 'Submitting...' : 'Submit quiz' }}
+              </button>
             </div>
           </section>
 
@@ -164,13 +198,12 @@
           </p>
 
           <div class="lesson-list">
-            <button v-for="(lesson, index) in courseItems" :key="lesson.uid" class="lesson-row" :class="{
+            <div v-for="(lesson, index) in courseItems" :key="lesson.uid" class="lesson-row" :class="{
               active: selectedLesson?.uid === lesson.uid,
-              completed: lesson.completed
-            }" @click="selectedLesson = lesson">
-              <button v-if="isStudent && lesson.lesson_type !== 'quiz' && lesson.lesson_type !== 'assignment'"
-                class="lesson-complete-btn" :class="{ completed: lesson.completed }"
-                @click.stop="toggleLessonComplete(lesson)">
+              completed: isCompleted(lesson)
+            }" @click="selectLesson(lesson)">
+              <button v-if="isStudent" class="lesson-complete-btn" :class="{ completed: isCompleted(lesson) }"
+                @click.stop="markCompleted(lesson)">
                 ✓
               </button>
 
@@ -185,7 +218,7 @@
                   {{ lessonTypeLabel(lesson.lesson_type) }}
                 </span>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
@@ -213,12 +246,43 @@
           </p>
         </div>
       </aside>
+
+      <div v-if="toast" class="toast">
+        {{ toast }}
+      </div>
     </div>
   </div>
+
+  <Transition name="modal">
+    <div v-if="showCompletionModal" class="completion-backdrop">
+      <div class="completion-modal">
+        <div class="completion-icon">
+          🎉
+        </div>
+
+        <h1>Course Completed!</h1>
+
+        <p>
+          Congratulations! You successfully completed this course
+          and earned your certificate.
+        </p>
+
+        <div class="completion-actions">
+          <button class="secondary-btn" @click="showCompletionModal = false">
+            Stay here
+          </button>
+
+          <button class="primary-btn" @click="$router.push({ name: 'Certificates' })">
+            View Certificate
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 
@@ -233,7 +297,17 @@ const selectedLesson = ref(null)
 const loading = ref(true)
 const error = ref('')
 const activeTab = ref(0)
-const courseProgress = ref(0)
+const submitting = ref(false)
+const toast = ref('')
+const showCompletionModal = ref(false)
+
+const completedItems = ref([])
+const quizAnswers = ref({})
+
+const assignmentForm = reactive({
+  text_answer: '',
+  file: null,
+})
 
 const tabs = ['Overview', 'Resources', 'Discussions', 'Quiz']
 
@@ -276,21 +350,93 @@ const courseItems = computed(() => {
   return [...lessons, ...quizItems, ...assignmentItems]
 })
 
-function calculateLocalCourseProgress() {
-  const lessonsOnly = (course.value?.lessons || [])
+const courseProgress = computed(() => {
+  if (!courseItems.value.length) return 0
 
-  if (!lessonsOnly.length) {
-    courseProgress.value = 0
+  return Math.round(
+    (completedItems.value.length / courseItems.value.length) * 100
+  )
+})
+
+function authHeaders(extraHeaders = {}) {
+  const token = localStorage.getItem('access_token')
+
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...extraHeaders,
+    },
+  }
+}
+
+function progressKey() {
+  return `course-progress-${route.params.id}`
+}
+
+function lessonTypeLabel(type) {
+  const labels = {
+    video: 'Video lesson',
+    text: 'Text lesson',
+    document: 'Document',
+    quiz: 'Quiz',
+    assignment: 'Assignment',
+    exam: 'Final exam',
+    final_exam: 'Final exam',
+  }
+
+  return labels[type] || 'Lesson'
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem(progressKey())
+  completedItems.value = saved ? JSON.parse(saved) : []
+}
+
+function saveProgress() {
+  localStorage.setItem(
+    progressKey(),
+    JSON.stringify(completedItems.value)
+  )
+}
+
+function isCompleted(item) {
+  return completedItems.value.includes(item?.uid)
+}
+
+async function markCompleted(item) {
+  if (!item?.uid) return
+
+  if (!completedItems.value.includes(item.uid)) {
+    completedItems.value.push(item.uid)
+    saveProgress()
+  }
+
+  const progress = courseProgress.value || 0
+
+  console.log('COURSE PROGRESS:', progress)
+
+  if (progress >= 100) {
+    await generateCertificate()
+    showCompletionModal.value = true
+    showToast('🎉 Congratulations! Certificate unlocked.')
     return
   }
 
-  const completedLessons = lessonsOnly.filter((lesson) => lesson.completed).length
+  showToast('Marked as completed ✅')
+}
 
-  courseProgress.value = Math.round(
-    (completedLessons / lessonsOnly.length) * 100
-  )
+function selectLesson(lesson) {
+  selectedLesson.value = lesson
+  activeTab.value = 0
 
-  course.value.progress = courseProgress.value
+  if (lesson.lesson_type === 'quiz') {
+    initQuizAnswers(lesson.quiz)
+  }
+
+  if (lesson.lesson_type === 'assignment') {
+    assignmentForm.text_answer = ''
+    assignmentForm.file = null
+  }
 }
 
 async function fetchCourse() {
@@ -298,22 +444,19 @@ async function fetchCourse() {
   error.value = ''
 
   try {
-    const token = localStorage.getItem('access_token')
-
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    }
-
     const [courseRes, quizzesRes, assignmentsRes] = await Promise.all([
-      axios.get(`http://127.0.0.1:8000/api/courses/${route.params.id}/`, {
-        headers,
-      }),
-      axios.get('http://127.0.0.1:8000/api/quizzes/', {
-        headers,
-      }),
-      axios.get('http://127.0.0.1:8000/api/assignments/', {
-        headers,
-      }),
+      axios.get(
+        `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
+        authHeaders()
+      ),
+      axios.get(
+        'http://127.0.0.1:8000/api/quizzes/',
+        authHeaders()
+      ),
+      axios.get(
+        'http://127.0.0.1:8000/api/assignments/',
+        authHeaders()
+      ),
     ])
 
     course.value = courseRes.data
@@ -326,11 +469,15 @@ async function fetchCourse() {
       (assignment) => Number(assignment.course) === Number(route.params.id)
     )
 
-    calculateLocalCourseProgress()
+    loadProgress()
 
     selectedLesson.value = courseItems.value.length
       ? courseItems.value[0]
       : null
+
+    if (selectedLesson.value?.lesson_type === 'quiz') {
+      initQuizAnswers(selectedLesson.value.quiz)
+    }
   } catch (err) {
     console.error(err)
     error.value = 'Failed to load course.'
@@ -339,51 +486,105 @@ async function fetchCourse() {
   }
 }
 
-async function toggleLessonComplete(lesson) {
-  if (!lesson || lesson.lesson_type === 'quiz' || lesson.lesson_type === 'assignment') {
-    return
+function initQuizAnswers(quiz) {
+  quizAnswers.value = {}
+
+    ; (quiz?.questions || []).forEach((question) => {
+      quizAnswers.value[question.id] = {
+        question: question.id,
+        selected_option: null,
+        text_answer: '',
+      }
+    })
+}
+
+async function submitQuiz() {
+  if (!selectedLesson.value?.quiz) return
+
+  const quiz = selectedLesson.value.quiz
+
+  if (!Object.keys(quizAnswers.value).length) {
+    initQuizAnswers(quiz)
   }
 
+  const payload = {
+    quiz: quiz.id,
+    answers: Object.values(quizAnswers.value).map((answer) => ({
+      question: answer.question,
+      selected_option: answer.selected_option || null,
+      text_answer: answer.text_answer || '',
+    })),
+  }
+
+  submitting.value = true
+
   try {
-    const token = localStorage.getItem('access_token')
-
-    const response = await axios.post(
-      `http://127.0.0.1:8000/api/lessons/${lesson.id}/toggle_complete/`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const res = await axios.post(
+      'http://127.0.0.1:8000/api/quiz-attempts/',
+      payload,
+      authHeaders()
     )
 
-    lesson.completed = response.data.lesson_completed
+    const score = Number(res.data.score || 0)
+    const passingScore = Number(quiz.passing_score || 50)
 
-    const realLesson = course.value.lessons.find(
-      (item) => Number(item.id) === Number(lesson.id)
-    )
-
-    if (realLesson) {
-      realLesson.completed = response.data.lesson_completed
+    if (score >= passingScore) {
+      await markCompleted(selectedLesson.value)
+      showToast(`Quiz passed ✅ Score: ${score.toFixed(1)}%`)
+    } else {
+      showToast(`Quiz failed ❌ Score: ${score.toFixed(1)}%`)
     }
-
-    courseProgress.value = response.data.course_progress
-    course.value.progress = response.data.course_progress
   } catch (err) {
     console.error(err)
-    alert('Could not update lesson progress.')
+    showToast('Failed to submit quiz')
+  } finally {
+    submitting.value = false
   }
 }
 
-function lessonTypeLabel(type) {
-  const labels = {
-    video: 'Video lesson',
-    reading: 'Reading lesson',
-    quiz: 'Quiz',
-    assignment: 'Assignment',
+function handleAssignmentFile(event) {
+  assignmentForm.file = event.target.files[0] || null
+}
+
+async function submitAssignment() {
+  if (!selectedLesson.value?.assignment) return
+
+  if (!assignmentForm.text_answer.trim() && !assignmentForm.file) {
+    showToast('Write an answer or upload a file')
+    return
   }
 
-  return labels[type] || 'Lesson'
+  const data = new FormData()
+  data.append('assignment', selectedLesson.value.assignment.id)
+  data.append('text_answer', assignmentForm.text_answer)
+
+  if (assignmentForm.file) {
+    data.append('file', assignmentForm.file)
+  }
+
+  submitting.value = true
+
+  try {
+    await axios.post(
+      'http://127.0.0.1:8000/api/submissions/',
+      data,
+      authHeaders({
+        'Content-Type': 'multipart/form-data',
+      })
+    )
+
+    await markCompleted(selectedLesson.value)
+
+    assignmentForm.text_answer = ''
+    assignmentForm.file = null
+
+    showToast('Assignment submitted ✅')
+  } catch (err) {
+    console.error(err)
+    showToast('Failed to submit assignment')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function lessonTypeIcon(type) {
@@ -418,7 +619,54 @@ function formatVideoUrl(url) {
   return url
 }
 
-onMounted(fetchCourse)
+function showToast(message) {
+  toast.value = message
+
+  setTimeout(() => {
+    toast.value = ''
+  }, 2600)
+}
+
+function canEarnCertificate() {
+  return courseItems.value.every((item) => {
+    if (item.lesson_type === 'quiz') {
+      return completedItems.value.includes(item.uid)
+    }
+
+    if (item.lesson_type === 'assignment') {
+      return completedItems.value.includes(item.uid)
+    }
+
+    return completedItems.value.includes(item.uid)
+  })
+}
+
+async function generateCertificate() {
+  try {
+    await axios.post(
+      'http://127.0.0.1:8000/api/certificates/generate/',
+      {
+        course_id: course.value.id,
+      },
+      authHeaders()
+    )
+  } catch (err) {
+    console.error(err)
+    showToast('Course completed, but certificate was not generated.')
+  }
+}
+
+async function checkCertificateOnLoad() {
+  if (courseProgress.value >= 100) {
+    console.log('COURSE ALREADY 100%, GENERATING CERTIFICATE...')
+    await generateCertificate()
+  }
+}
+
+onMounted(async () => {
+  await fetchCourse()
+  await checkCertificateOnLoad()
+})
 </script>
 
 <style scoped>
@@ -605,11 +853,58 @@ onMounted(fetchCourse)
 }
 
 .option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   margin-top: 8px;
+  cursor: pointer;
+}
+
+.option.selected {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 700;
+}
+
+.answer-box {
+  width: 100%;
+  min-height: 120px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.file-input {
+  display: block;
+  margin-top: 12px;
+  padding: 10px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+}
+
+.primary-action {
+  margin-top: 16px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  padding: 11px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .course-sidebar {
@@ -713,9 +1008,103 @@ onMounted(fetchCourse)
   font-size: 12px;
 }
 
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: #111827;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  z-index: 100;
+}
+
 @media (max-width: 1000px) {
   .course-layout {
     grid-template-columns: 1fr;
   }
+}
+
+.completion-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(6px);
+}
+
+.completion-modal {
+  width: min(520px, 92vw);
+  background: white;
+  border-radius: 28px;
+  padding: 42px;
+  text-align: center;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+}
+
+.completion-icon {
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,
+      #4f46e5,
+      #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  color: white;
+}
+
+.completion-modal h1 {
+  margin: 0 0 12px;
+  font-size: 34px;
+}
+
+.completion-modal p {
+  color: #6b7280;
+  line-height: 1.7;
+  margin-bottom: 30px;
+}
+
+.completion-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.primary-btn,
+.secondary-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 13px 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background: #4f46e5;
+  color: white;
+}
+
+.secondary-btn {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: 0.25s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
 }
 </style>

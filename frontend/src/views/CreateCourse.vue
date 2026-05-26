@@ -4,7 +4,8 @@
 
     <CourseBasics v-if="step === 1" :form="form" :errors="errors" :categories="categories" :levels="levels"
       :languages="languages" :thumbnail-options="thumbnailOptions" :available-tags="availableTags"
-      @toggle-tag="toggleTag" />
+      :thumbnail-preview="thumbnailPreview" @toggle-tag="toggleTag" @thumbnail-upload="handleThumbnailUpload"
+      @remove-thumbnail="removeThumbnail" />
 
     <CourseContent v-if="step === 2" :form="form" :lesson-types="lessonTypes" @add-lesson="addLesson"
       @edit-lesson="editLesson" @remove-lesson="removeLesson" @add-objective="addObjective"
@@ -16,8 +17,16 @@
 
     <div v-if="step === 5" class="success-banner">
       <div class="success-icon">✓</div>
-      <p class="success-title">Course created!</p>
-      <p class="success-sub">Your course is live and ready for enrollment.</p>
+      <p class="success-title">
+        {{ isEditMode ? 'Course updated!' : 'Course created!' }}
+      </p>
+      <p class="success-sub">
+        {{
+          isEditMode
+            ? 'Your changes were saved successfully.'
+            : 'Your course is live and ready for enrollment.'
+        }}
+      </p>
 
       <div class="success-actions">
         <button class="btn btn-primary" @click="$emit('view-course', form)">
@@ -42,7 +51,7 @@
       </button>
 
       <button class="btn" :class="step === totalSteps ? 'btn-success' : 'btn-primary'" @click="handleNext">
-        {{ step === totalSteps ? 'Publish course' : 'Continue' }}
+        {{ step === totalSteps ? finalButtonText : 'Continue' }}
       </button>
     </div>
 
@@ -57,7 +66,7 @@
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue'
 import axios from 'axios'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import CourseStepper from '@/components/course/CourseStepper.vue'
 import CourseBasics from '@/components/course/CourseBasics.vue'
@@ -68,14 +77,22 @@ import CourseReview from '@/components/course/CourseReview.vue'
 import '@/assets/create-course.css'
 
 const route = useRoute()
-const router = useRouter()
 
-const isEditMode = computed(() => !!route.params.id)
+const isEditMode = computed(() => route.name === 'EditCourse')
+
+const finalButtonText = computed(() => {
+  return isEditMode.value
+    ? 'Save changes'
+    : 'Publish course'
+})
 
 const emit = defineEmits(['view-course', 'save-draft'])
 
 const step = ref(1)
 const totalSteps = 4
+
+const thumbnailFile = ref(null)
+const thumbnailPreview = ref('')
 
 const stepLabels = ['Basics', 'Content', 'Settings', 'Review']
 
@@ -222,13 +239,30 @@ const checklist = computed(() => [
     val: '',
   },
   {
-    label: 'Thumbnail chosen',
-    ok: !!form.thumbnail,
-    val: 'Icon selected',
+    label: 'Thumbnail selected',
+    ok: !!form.thumbnail || !!thumbnailFile.value,
+    val: thumbnailFile.value ? 'Image uploaded' : 'Icon selected',
   },
 ])
 
 let lessonIdSeq = 0
+
+function handleThumbnailUpload(file) {
+  if (!file) return
+
+  thumbnailFile.value = file
+  thumbnailPreview.value = URL.createObjectURL(file)
+  form.thumbnail = ''
+}
+
+function removeThumbnail() {
+  thumbnailFile.value = null
+  thumbnailPreview.value = ''
+
+  if (form.thumbnail && form.thumbnail.startsWith('http')) {
+    form.thumbnail = ''
+  }
+}
 
 function addLesson(type) {
   lessonIdSeq++
@@ -248,6 +282,7 @@ function addLesson(type) {
     lesson.quiz = {
       passing_score: 50,
       time_limit_minutes: null,
+      is_final_exam: false,
       questions: [],
     }
   }
@@ -327,54 +362,41 @@ function validateContentStep() {
   return true
 }
 
+function buildLessonsPayload() {
+  return form.lessons.map((lesson, index) => ({
+    title: lesson.title,
+    content: lesson.content || '',
+    video_url: lesson.video_url || '',
+    video_file: null,
+    lesson_type: lesson.type,
+    type: lesson.type,
+    order_number: index + 1,
+
+    quiz:
+      lesson.type === 'quiz'
+        ? {
+          title: lesson.title,
+          description: lesson.content || '',
+          passing_score: lesson.quiz?.passing_score || 50,
+          time_limit_minutes: lesson.quiz?.time_limit_minutes || null,
+          is_final_exam: lesson.quiz?.is_final_exam || false,
+          questions: lesson.quiz?.questions || [],
+        }
+        : null,
+
+    assignment:
+      lesson.type === 'assignment'
+        ? {
+          title: lesson.title,
+          instructions: lesson.assignment?.instructions || lesson.content || '',
+          due_date: lesson.assignment?.due_date || null,
+          max_score: lesson.assignment?.max_score || 100,
+        }
+        : null,
+  }))
+}
+
 async function saveCourse() {
-  const payload = {
-    title: form.title,
-    description: form.description,
-    category: form.category,
-
-    level: form.level.toLowerCase(),
-    language: form.language,
-    duration_hours: form.duration || 0,
-    has_certificate: form.settings.completionCertificate,
-    tags: form.tags,
-
-    lessons: form.lessons.map((lesson, index) => ({
-      title: lesson.title,
-      content: lesson.content || '',
-      video_url: lesson.video_url || '',
-      video_file: lesson.video_file || null,
-
-      lesson_type: lesson.type,
-      order_number: index + 1,
-
-      quiz:
-        lesson.type === 'quiz'
-          ? {
-            title: lesson.title,
-            description: lesson.content || '',
-            passing_score: lesson.quiz?.passing_score || 50,
-            time_limit_minutes: lesson.quiz?.time_limit_minutes || null,
-            questions: lesson.quiz?.questions || [],
-          }
-          : null,
-
-      assignment:
-        lesson.type === 'assignment'
-          ? {
-            title: lesson.title,
-            instructions: lesson.assignment?.instructions || lesson.content || '',
-            due_date: lesson.assignment?.due_date || null,
-            max_score: lesson.assignment?.max_score || 100,
-          }
-          : null,
-    })),
-
-    is_free: form.pricing === 'free',
-    price: form.pricing === 'free' ? 0 : form.price,
-    is_published: form.settings.publishImmediately,
-  }
-
   const token = localStorage.getItem('access_token')
 
   if (!token) {
@@ -382,25 +404,50 @@ async function saveCourse() {
     throw new Error('No access token found')
   }
 
+  const formData = new FormData()
+
+  formData.append('title', form.title)
+  formData.append('description', form.description)
+  formData.append('category', form.category)
+  formData.append('level', form.level.toLowerCase())
+  formData.append('language', form.language)
+  formData.append('duration_hours', form.duration || 0)
+  formData.append('has_certificate', form.settings.completionCertificate)
+  formData.append('tags', JSON.stringify(form.tags))
+  formData.append('lessons', JSON.stringify(buildLessonsPayload()))
+  formData.append('is_free', form.pricing === 'free')
+  formData.append('price', form.pricing === 'free' ? 0 : form.price || 0)
+  formData.append('is_published', form.settings.publishImmediately)
+
+  if (thumbnailFile.value) {
+    formData.append('thumbnail', thumbnailFile.value)
+  }
+
+  if (!thumbnailFile.value && !thumbnailPreview.value) {
+    formData.append('remove_thumbnail', 'true')
+  }
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+
   if (isEditMode.value) {
     const response = await axios.patch(
       `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      formData,
+      config
     )
 
     return response.data
   }
 
-  const response = await axios.post('http://127.0.0.1:8000/api/courses/', payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const response = await axios.post(
+    'http://127.0.0.1:8000/api/courses/',
+    formData,
+    config
+  )
 
   return response.data
 }
@@ -416,6 +463,8 @@ async function handleNext() {
 
   try {
     const course = await saveCourse()
+    const token = localStorage.getItem('access_token')
+    await saveExtraQuizAndAssignments(course.id, token)
 
     showToast(isEditMode.value ? 'Course updated successfully' : 'Course created successfully')
     step.value = 5
@@ -467,8 +516,72 @@ function resetForm() {
     enrollDeadline: '',
   })
 
+  thumbnailFile.value = null
+  thumbnailPreview.value = ''
   lessonIdSeq = 0
   step.value = 1
+}
+
+async function saveExtraQuizAndAssignments(courseId, token) {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+  }
+
+  for (const lesson of form.lessons) {
+    if (lesson.type === 'quiz') {
+      const payload = {
+        course: courseId,
+        title: lesson.title,
+        description: lesson.content || '',
+        passing_score: lesson.quiz?.passing_score || 50,
+        time_limit_minutes: lesson.quiz?.time_limit_minutes || null,
+        is_published: true,
+        questions: lesson.quiz?.questions || [],
+      }
+
+      if (String(lesson.id).startsWith('quiz-')) {
+        const quizId = String(lesson.id).replace('quiz-', '')
+
+        await axios.patch(
+          `http://127.0.0.1:8000/api/quizzes/${quizId}/`,
+          payload,
+          { headers }
+        )
+      } else {
+        await axios.post(
+          'http://127.0.0.1:8000/api/quizzes/',
+          payload,
+          { headers }
+        )
+      }
+    }
+
+    if (lesson.type === 'assignment') {
+      const payload = {
+        course: courseId,
+        title: lesson.title,
+        description: lesson.content || '',
+        deadline: lesson.assignment?.due_date || null,
+        max_score: lesson.assignment?.max_score || 100,
+      }
+
+      if (String(lesson.id).startsWith('assignment-')) {
+        const assignmentId = String(lesson.id).replace('assignment-', '')
+
+        await axios.patch(
+          `http://127.0.0.1:8000/api/assignments/${assignmentId}/`,
+          payload,
+          { headers }
+        )
+      } else {
+        await axios.post(
+          'http://127.0.0.1:8000/api/assignments/',
+          payload,
+          { headers }
+        )
+      }
+    }
+  }
 }
 
 function showToast(message) {
@@ -487,32 +600,23 @@ async function loadCourse() {
     const token = localStorage.getItem('access_token')
 
     const [courseRes, quizzesRes, assignmentsRes] = await Promise.all([
-      axios.get(
-        `http://127.0.0.1:8000/api/courses/${route.params.id}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      ),
+      axios.get(`http://127.0.0.1:8000/api/courses/${route.params.id}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
 
-      axios.get(
-        'http://127.0.0.1:8000/api/quizzes/',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      ),
+      axios.get('http://127.0.0.1:8000/api/quizzes/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
 
-      axios.get(
-        'http://127.0.0.1:8000/api/assignments/',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      ),
+      axios.get('http://127.0.0.1:8000/api/assignments/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
     ])
 
     const course = courseRes.data
@@ -524,6 +628,11 @@ async function loadCourse() {
     form.language = course.language || 'English'
     form.duration = course.duration_hours || null
     form.tags = course.tags || []
+    form.thumbnail = course.thumbnail || ''
+
+    if (course.thumbnail) {
+      thumbnailPreview.value = course.thumbnail
+    }
 
     form.pricing = course.is_free ? 'free' : 'paid'
     form.price = course.price || null
@@ -569,11 +678,7 @@ async function loadCourse() {
         assignment,
       }))
 
-    form.lessons = [
-      ...normalLessons,
-      ...quizLessons,
-      ...assignmentLessons,
-    ]
+    form.lessons = [...normalLessons, ...quizLessons, ...assignmentLessons]
   } catch (error) {
     console.error(error)
     showToast('Failed to load course')

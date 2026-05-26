@@ -4,11 +4,13 @@
       <h3 class="section-title">👁 Course preview</h3>
 
       <div class="preview-card">
-        <div
-          class="preview-thumb"
-          :style="{ background: selectedThumbnailBg }"
-        >
-          {{ form.thumbnail }}
+        <div class="preview-thumbnail" :style="{ background: selectedThumbnailBg }">
+          <img v-if="form.thumbnail && form.thumbnail.startsWith('http')" :src="form.thumbnail" class="preview-image"
+            alt="Course thumbnail" />
+
+          <span v-else class="preview-icon">
+            {{ form.thumbnail || '📘' }}
+          </span>
         </div>
 
         <div class="preview-title">
@@ -42,11 +44,7 @@
         </div>
 
         <div v-if="form.tags.length" class="tag-row mt-2">
-          <span
-            v-for="tag in form.tags"
-            :key="tag"
-            class="tag sel small"
-          >
+          <span v-for="tag in form.tags" :key="tag" class="tag sel small">
             {{ tag }}
           </span>
         </div>
@@ -57,11 +55,7 @@
       <h3 class="section-title">📋 Checklist</h3>
 
       <div class="checklist">
-        <div
-          v-for="item in checklist"
-          :key="item.label"
-          class="checklist-row"
-        >
+        <div v-for="item in checklist" :key="item.label" class="checklist-row">
           <span :class="item.ok ? 'icon-ok' : 'icon-muted'">
             {{ item.ok ? '✓' : '×' }}
           </span>
@@ -86,3 +80,25 @@ defineProps({
   selectedThumbnailBg: String,
 })
 </script>
+
+<style scoped>
+.preview-thumbnail {
+  height: 140px;
+  border-radius: 14px;
+  background: #eef1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-icon {
+  font-size: 48px;
+}
+</style>

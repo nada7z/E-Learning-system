@@ -29,5 +29,12 @@ class Submission(models.Model):
     grade = models.FloatField(blank=True, null=True)
     feedback = models.TextField(blank=True, null=True)
 
+    @property
+    def passed(self):
+        if self.grade is None:
+            return False
+
+        return self.grade >= (self.assignment.max_score * 0.5)
+
     def __str__(self):
         return f"{self.student} - {self.assignment}"

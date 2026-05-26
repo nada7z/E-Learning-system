@@ -75,6 +75,7 @@ class QuizSerializer(serializers.ModelSerializer):
             "attempts_count",
             "pass_rate",
             "created_at",
+            "is_final_exam",
         ]
 
     def get_course_title(self, obj):

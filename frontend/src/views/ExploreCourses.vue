@@ -37,11 +37,11 @@
 
       <div class="tab-bar">
         <button class="tab" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'">
-          ⊞ Grid
+          Grid
         </button>
 
         <button class="tab" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
-          ≡ List
+          List
         </button>
       </div>
     </div>
@@ -75,8 +75,10 @@
 
     <div v-else-if="viewMode === 'grid'" class="course-grid">
       <div v-for="course in filteredCourses" :key="course.id" class="course-card" @click="openOverview(course)">
-        <div class="course-thumb" :style="{ background: course.thumbBg }">
-          <span class="thumb-emoji">{{ course.thumb }}</span>
+        <div class="course-thumb" :style="{ background: course.thumbnail ? 'transparent' : course.thumbBg }">
+          <img v-if="course.thumbnail" :src="course.thumbnail" class="course-thumb-img" alt="Course thumbnail" />
+
+          <span v-else class="thumb-emoji">{{ course.thumb }}</span>
 
           <span v-if="isEnrolled(course.id)" class="enrolled-badge">
             ✓ Enrolled
@@ -124,8 +126,10 @@
 
     <div v-else class="course-list">
       <div v-for="course in filteredCourses" :key="course.id" class="list-row" @click="openOverview(course)">
-        <div class="list-thumb" :style="{ background: course.thumbBg }">
-          {{ course.thumb }}
+        <div class="list-thumb" :style="{ background: course.thumbnail ? 'transparent' : course.thumbBg }">
+          <img v-if="course.thumbnail" :src="course.thumbnail" class="list-thumb-img" alt="Course thumbnail" />
+
+          <span v-else>{{ course.thumb }}</span>
         </div>
 
         <div class="list-info">
@@ -512,6 +516,7 @@ function mapCourse(course) {
     progress_percentage: course.progress_percentage || 0,
     objectives: course.objectives || [],
     curriculum_preview: course.curriculum_preview || [],
+    thumbnail: course.thumbnail || null,
     thumb: '📚',
     thumbBg: '#EEF1FF'
   }

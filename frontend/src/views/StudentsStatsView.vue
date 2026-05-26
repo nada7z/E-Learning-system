@@ -13,7 +13,7 @@
           <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
         </select>
         <button class="btn btn-ghost btn-sm" @click="showToast('Report exported 📥')">
-          ↓ Export CSV
+          <Download :size="16" /> Export CSV
         </button>
       </div>
     </div>
@@ -21,25 +21,33 @@
     <!-- Stat cards -->
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-icon" style="background:#EEF1FF">👥</div>
+        <div class="stat-icon" style="background:#EEF1FF">
+          <Users :size="20" />
+        </div>
         <div class="stat-val">{{ totalStudents }}</div>
         <div class="stat-label">Total Students</div>
         <div class="stat-trend trend-up">↑ 14 this month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#E0F2F1">📊</div>
+        <div class="stat-icon" style="background:#E0F2F1">
+          <BarChart3 :size="20" />
+        </div>
         <div class="stat-val">{{ avgProgress }}%</div>
         <div class="stat-label">Avg Progress</div>
         <div class="stat-trend trend-up">↑ 3.2% this week</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#FFF3E0">🏆</div>
+        <div class="stat-icon" style="background:#FFF3E0">
+          <Trophy :size="20" />
+        </div>
         <div class="stat-val">{{ avgQuizScore }}%</div>
         <div class="stat-label">Avg Quiz Score</div>
         <div class="stat-trend trend-up">↑ 5pts vs last month</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#EDE9FE">✅</div>
+        <div class="stat-icon" style="background:#EDE9FE">
+          <CheckSquare :size="20" />
+        </div>
         <div class="stat-val">{{ completionRate }}%</div>
         <div class="stat-label">Completion Rate</div>
         <div class="stat-trend trend-dn">↓ 1.1% this week</div>
@@ -106,7 +114,8 @@
               <div class="top-score">{{ s.avg_score }}%</div>
               <div class="mini-bar-wrap">
                 <div class="mini-bar">
-                  <div class="mini-fill" :style="{ width: s.avg_score + '%', background: scoreColor(s.avg_score) }"></div>
+                  <div class="mini-fill" :style="{ width: s.avg_score + '%', background: scoreColor(s.avg_score) }">
+                  </div>
                 </div>
               </div>
             </div>
@@ -118,15 +127,14 @@
     <!-- Filters & search above table -->
     <div class="table-toolbar">
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <Search :size="16" />
+        </span>
         <input v-model="search" class="input search-input" placeholder="Search students…" />
       </div>
       <div class="tab-bar">
-        <button
-          v-for="t in tabs" :key="t.value"
-          class="tab" :class="{ active: activeTab === t.value }"
-          @click="activeTab = t.value"
-        >{{ t.label }}</button>
+        <button v-for="t in tabs" :key="t.value" class="tab" :class="{ active: activeTab === t.value }"
+          @click="activeTab = t.value">{{ t.label }}</button>
       </div>
       <select v-model="sortBy" class="input filter-select" style="min-width:160px">
         <option value="name">Sort: Name</option>
@@ -173,10 +181,8 @@
             <td>
               <div class="progress-cell">
                 <div class="progress-bar">
-                  <div
-                    class="progress-fill"
-                    :style="{ width: s.progress + '%', background: progressColor(s.progress) }"
-                  ></div>
+                  <div class="progress-fill"
+                    :style="{ width: s.progress + '%', background: progressColor(s.progress) }"></div>
                 </div>
                 <span class="progress-pct">{{ s.progress }}%</span>
               </div>
@@ -189,7 +195,8 @@
             <td class="text-muted">{{ s.submissions }} / {{ s.total_assignments }}</td>
             <td class="text-muted text-sm">{{ s.last_active }}</td>
             <td>
-              <span class="status-badge" :class="s.status === 'active' ? 'status-green' : s.status === 'at_risk' ? 'status-red' : 'status-gray'">
+              <span class="status-badge"
+                :class="s.status === 'active' ? 'status-green' : s.status === 'at_risk' ? 'status-red' : 'status-gray'">
                 {{ statusLabel(s.status) }}
               </span>
             </td>
@@ -207,7 +214,8 @@
         <div class="drawer">
           <div class="drawer-header">
             <div class="drawer-student">
-              <div class="avatar-lg" :style="{ background: drawer.student?.color + '22', color: drawer.student?.color }">
+              <div class="avatar-lg"
+                :style="{ background: drawer.student?.color + '22', color: drawer.student?.color }">
                 {{ initials(drawer.student?.name ?? '') }}
               </div>
               <div>
@@ -241,12 +249,12 @@
             <div class="detail-section">
               <div class="detail-section-title">Course progress</div>
               <div class="detail-progress-bar">
-                <div
-                  class="detail-progress-fill"
-                  :style="{ width: drawer.student?.progress + '%', background: progressColor(drawer.student?.progress ?? 0) }"
-                ></div>
+                <div class="detail-progress-fill"
+                  :style="{ width: drawer.student?.progress + '%', background: progressColor(drawer.student?.progress ?? 0) }">
+                </div>
               </div>
-              <div class="detail-progress-label">{{ drawer.student?.progress }}% complete · {{ drawer.student?.course }}</div>
+              <div class="detail-progress-label">{{ drawer.student?.progress }}% complete · {{ drawer.student?.course }}
+              </div>
             </div>
 
             <div class="detail-section">
@@ -255,7 +263,8 @@
                 <div v-for="(q, i) in drawer.quizHistory" :key="i" class="quiz-history-row">
                   <span class="quiz-history-name">{{ q.name }}</span>
                   <div class="quiz-history-bar">
-                    <div class="quiz-history-fill" :style="{ width: q.score + '%', background: scoreColor(q.score) }"></div>
+                    <div class="quiz-history-fill" :style="{ width: q.score + '%', background: scoreColor(q.score) }">
+                    </div>
                   </div>
                   <span class="quiz-history-score" :class="scoreClass(q.score)">{{ q.score }}%</span>
                   <span class="status-badge" :class="q.passed ? 'status-green' : 'status-red'" style="font-size:10px">
@@ -296,6 +305,15 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import axios from 'axios'
+import {
+  Users,
+  BarChart3,
+  Trophy,
+  CheckSquare,
+  Search,
+  Download,
+  X,
+} from 'lucide-vue-next'
 
 const scoreDistChart = ref(null)
 const progressChart = ref(null)
@@ -348,7 +366,7 @@ const avgProgress = computed(() => {
 
   return Math.round(
     students.value.reduce((sum, student) => sum + student.progress, 0) /
-      students.value.length
+    students.value.length
   )
 })
 
@@ -357,7 +375,7 @@ const avgQuizScore = computed(() => {
 
   return Math.round(
     students.value.reduce((sum, student) => sum + student.avg_score, 0) /
-      students.value.length
+    students.value.length
   )
 })
 
@@ -367,7 +385,7 @@ const completionRate = computed(() => {
   return Math.round(
     (students.value.filter((student) => student.progress >= 100).length /
       students.value.length) *
-      100
+    100
   )
 })
 
@@ -589,7 +607,7 @@ function buildStudents() {
     student.quizScores.push(Number(attempt.score || 0))
     student.avg_score = Math.round(
       student.quizScores.reduce((sum, score) => sum + score, 0) /
-        student.quizScores.length
+      student.quizScores.length
     )
 
     student.last_active = formatDate(attempt.submitted_at)
@@ -795,9 +813,9 @@ function buildCharts() {
 
         const avg = courseStudents.length
           ? Math.round(
-              courseStudents.reduce((sum, s) => sum + s.progress, 0) /
-                courseStudents.length
-            )
+            courseStudents.reduce((sum, s) => sum + s.progress, 0) /
+            courseStudents.length
+          )
           : 0
 
         return {

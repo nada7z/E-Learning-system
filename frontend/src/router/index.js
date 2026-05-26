@@ -25,6 +25,24 @@ const routes = [
         meta: { role: 'student' }
       },
       {
+        path: 'certificates',
+        name: 'Certificates',
+        component: () => import('@/views/CertificatesView.vue'),
+        meta: {
+          requiresAuth: true,
+          role: 'student'
+        }
+      },
+      {
+        path: 'continue-learning',
+        name: 'ContinueLearning',
+        component: () => import('@/views/ContinueLearningView.vue'),
+        meta: {
+          requiresAuth: true,
+          role: 'student'
+        }
+      },
+      {
         path: 'teacher-dashboard',
         name: 'TeacherDashboard',
         component: () => import('@/views/TeacherDashboard.vue'),
@@ -33,6 +51,12 @@ const routes = [
       {
         path: 'create-course',
         name: 'CreateCourse',
+        component: () => import('@/views/CreateCourse.vue'),
+        meta: { role: 'teacher' }
+      },
+      {
+        path: '/courses/:id/edit',
+        name: 'EditCourse',
         component: () => import('@/views/CreateCourse.vue'),
         meta: { role: 'teacher' }
       },

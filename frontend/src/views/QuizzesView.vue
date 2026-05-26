@@ -47,9 +47,16 @@
         <div v-for="q in filteredQuizzes" :key="q.id" class="quiz-card">
           <div class="quiz-card-head">
             <div class="quiz-thumb">🎯</div>
-            <span class="pub-badge" :class="q.is_published ? 'pub' : 'draft'">
-              {{ q.is_published ? 'Published' : 'Draft' }}
-            </span>
+
+            <div class="quiz-badges">
+              <span class="pub-badge" :class="q.is_published ? 'pub' : 'draft'">
+                {{ q.is_published ? 'Published' : 'Draft' }}
+              </span>
+
+              <span v-if="q.is_final_exam" class="final-badge">
+                Final Exam
+              </span>
+            </div>
           </div>
 
           <div class="quiz-card-body">
@@ -60,7 +67,7 @@
             <div class="quiz-meta-row">
               <span class="quiz-meta-item">📝 {{ q.questions_count }} Q</span>
               <span class="quiz-meta-item">⏱ {{ q.time_limit_minutes ? q.time_limit_minutes + ' min' : 'No limit'
-                }}</span>
+              }}</span>
               <span class="quiz-meta-item">🏆 Pass {{ q.passing_score }}%</span>
               <span class="quiz-meta-item">👥 {{ q.attempts_count }} attempts</span>
             </div>
@@ -291,7 +298,7 @@
           <div class="builder-footer">
             <span class="q-count-label">{{ builder.questions.length }} question{{ builder.questions.length !== 1 ? 's' :
               ''
-              }}</span>
+            }}</span>
             <button class="btn btn-ghost" @click="builder.open = false">Cancel</button>
             <button class="btn btn-primary" @click="saveBuilder">Save quiz</button>
           </div>

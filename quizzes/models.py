@@ -30,7 +30,9 @@ class Quiz(models.Model):
         blank=True,
         null=True
     )
-
+     
+    is_final_exam = models.BooleanField(default=False)
+    
     is_published = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

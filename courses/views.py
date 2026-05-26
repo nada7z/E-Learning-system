@@ -76,6 +76,32 @@ class PublishedCoursesView(APIView):
 
         return Response(serializer.data)
 
+class ContinueLearningView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not hasattr(request.user, "student_profile"):
+            return Response([])
+
+        enrollments = Enrollment.objects.filter(
+            student=request.user.student_profile,
+            course__is_published=True
+        ).select_related("course").order_by("-enrolled_at")
+
+        courses = []
+
+        for enrollment in enrollments:
+            serializer = CourseListSerializer(
+                enrollment.course,
+                context={"request": request}
+            )
+
+            item = serializer.data
+            item["progress_percentage"] = enrollment.progress_percentage or 0
+            item["completed"] = enrollment.completed
+            courses.append(item)
+
+        return Response(courses)
 
 class EnrollCourseView(APIView):
     permission_classes = [permissions.IsAuthenticated]
