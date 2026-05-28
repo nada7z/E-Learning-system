@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
 from courses.models import Enrollment, Course
+from courses.services import can_student_complete_course
 from .models import Quiz, QuizAttempt
 from .serializers import QuizSerializer, QuizAttemptSerializer
 
@@ -105,3 +106,22 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
             return QuizAttempt.objects.all().order_by("-submitted_at")
 
         return QuizAttempt.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if not hasattr(user, "student_profile"):
+            raise PermissionDenied(
+                "Only students can submit quizzes."
+            )
+
+        attempt = serializer.save()
+
+        if not attempt.student_id:
+            attempt.student = user.student_profile
+            attempt.save()
+
+        can_student_complete_course(
+            user.student_profile,
+            attempt.quiz.course
+        )

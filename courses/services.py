@@ -24,8 +24,6 @@ def can_student_complete_course(student, course):
         is_published=True
     ).first()
 
-    assignments = Assignment.objects.filter(course=course)
-
     for quiz in normal_quizzes:
         passed_quiz = QuizAttempt.objects.filter(
             student=student,
@@ -35,18 +33,6 @@ def can_student_complete_course(student, course):
 
         if not passed_quiz:
             return False, f'Quiz "{quiz.title}" is not passed yet.'
-
-    for assignment in assignments:
-        submission = Submission.objects.filter(
-            student=student,
-            assignment=assignment
-        ).order_by("-submitted_at").first()
-
-        if not submission:
-            return False, f'Assignment "{assignment.title}" is not submitted yet.'
-
-        if not submission.passed:
-            return False, f'Assignment "{assignment.title}" is not passed yet.'
 
     if not final_exam:
         return False, "Final exam does not exist yet."

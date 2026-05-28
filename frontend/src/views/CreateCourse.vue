@@ -662,7 +662,10 @@ async function loadCourse() {
         content: quiz.description || '',
         meta: 'Quiz',
         isEditing: false,
-        quiz,
+        quiz: {
+          ...quiz,
+          is_final_exam: Boolean(quiz.is_final_exam),
+        },
       }))
 
     const assignmentLessons = (assignmentsRes.data || [])

@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ContinueLearningView,
+    CourseDiscussionView,
+    CourseReviewView,
     CourseViewSet,
     PublishedCoursesView,
     EnrollCourseView
@@ -24,4 +26,14 @@ urlpatterns = router.urls + [
         name="enroll-course",
     ),
     path("continue-learning/", ContinueLearningView.as_view(), name="continue-learning"),
+    path(
+    "courses/<int:course_id>/reviews/",
+    CourseReviewView.as_view(),
+    name="course-reviews",
+   ),
+    path(
+    "courses/<int:course_id>/discussions/",
+    CourseDiscussionView.as_view(),
+    name="course-discussions",
+   ),
 ]

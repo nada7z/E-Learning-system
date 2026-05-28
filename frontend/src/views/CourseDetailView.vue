@@ -76,7 +76,7 @@
                 selectedLesson.lesson_type !== 'assignment'
               " class="lesson-complete-btn big" :class="{ completed: isCompleted(selectedLesson) }"
                 @click="markCompleted(selectedLesson)">
-                ✓
+                <CheckIcon :size="20" />
               </button>
             </div>
 
@@ -90,7 +90,7 @@
               selectedLesson.lesson_type !== 'quiz' &&
               selectedLesson.lesson_type !== 'assignment'
             " class="primary-action" :disabled="isCompleted(selectedLesson)" @click="markCompleted(selectedLesson)">
-              {{ isCompleted(selectedLesson) ? 'Completed ✅' : 'Mark as completed' }}
+              {{ isCompleted(selectedLesson) ? 'Completed' : 'Mark as completed' }}
             </button>
 
             <div v-if="selectedLesson?.lesson_type === 'assignment'" class="activity-box">
@@ -117,7 +117,7 @@
 
               <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)"
                 @click="submitAssignment">
-                {{ isCompleted(selectedLesson) ? 'Submitted ✅' : submitting ? 'Submitting...' : 'Submit assignment' }}
+                {{ isCompleted(selectedLesson) ? 'Submitted' : submitting ? 'Submitting...' : 'Submit assignment' }}
               </button>
             </div>
 
@@ -152,7 +152,7 @@
               </div>
 
               <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)" @click="submitQuiz">
-                {{ isCompleted(selectedLesson) ? 'Quiz submitted ✅' : submitting ? 'Submitting...' : 'Submit quiz' }}
+                {{ isCompleted(selectedLesson) ? 'Quiz submitted' : submitting ? 'Submitting...' : 'Submit quiz' }}
               </button>
             </div>
           </section>
@@ -163,28 +163,89 @@
           </section>
 
           <section v-if="activeTab === 2">
-            <h2>Discussions</h2>
-            <p class="lesson-text">Discussion forum is not implemented yet.</p>
+            <div class="discussion-card">
+              <h2>Course discussion</h2>
+              <p class="lesson-text">
+                Ask questions, discuss lessons, and get answers from the teacher.
+              </p>
+
+              <div class="discussion-form">
+                <textarea v-model="discussionText" class="discussion-input" placeholder="Write your message..."
+                  rows="3"></textarea>
+
+                <button class="primary-action" :disabled="discussionLoading || !discussionText.trim()"
+                  @click="submitDiscussion">
+                  {{ discussionLoading ? 'Posting...' : 'Post message' }}
+                </button>
+              </div>
+
+              <div v-if="discussionMessages.length" class="discussion-list">
+                <div v-for="message in discussionMessages" :key="message.id" class="discussion-message">
+                  <div class="discussion-header">
+                    <strong>{{ message.author_name }}</strong>
+
+                    <span v-if="message.is_teacher" class="teacher-badge">
+                      Teacher
+                    </span>
+                  </div>
+
+                  <p>{{ message.message }}</p>
+
+                  <small>
+                    {{ new Date(message.created_at).toLocaleString() }}
+                  </small>
+                </div>
+              </div>
+
+              <p v-else class="lesson-text">
+                No messages yet. Start the discussion.
+              </p>
+            </div>
           </section>
 
           <section v-if="activeTab === 3">
-            <template v-if="selectedLesson?.lesson_type === 'quiz'">
-              <h2>{{ selectedLesson.quiz?.title || selectedLesson.title }}</h2>
+            <div class="review-card">
+              <h2>Course reviews</h2>
 
-              <div v-for="(question, qIndex) in selectedLesson.quiz?.questions || []" :key="question.id || qIndex"
-                class="question-card">
-                <h3>Question {{ qIndex + 1 }}</h3>
-                <p>{{ question.text }}</p>
+              <div v-if="canReviewCourse" class="review-form">
+                <h3>
+                  {{ myReview ? 'Update your review' : 'Leave a review' }}
+                </h3>
 
-                <div v-for="option in question.options || []" :key="option.id || option.text" class="option">
-                  {{ option.text }}
+                <div class="stars">
+                  <button v-for="star in 5" :key="star" type="button" :class="{ active: star <= reviewForm.rating }"
+                    @click="reviewForm.rating = star">
+                    ★
+                  </button>
+                </div>
+
+                <textarea v-model="reviewForm.review" class="answer-box" placeholder="Write your review..."></textarea>
+
+                <button class="primary-action" @click="submitReview">
+                  {{ myReview ? 'Update review' : 'Submit review' }}
+                </button>
+              </div>
+
+              <p v-else-if="isStudent" class="lesson-text">
+                Complete and pass this course to leave a review.
+              </p>
+
+              <div v-if="reviews.length" class="reviews-list">
+                <div v-for="review in reviews" :key="review.id" class="single-review">
+                  <strong>{{ review.student_name }}</strong>
+
+                  <span>
+                    {{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}
+                  </span>
+
+                  <p>{{ review.review }}</p>
                 </div>
               </div>
-            </template>
 
-            <p v-else class="lesson-text">
-              Select a quiz from course content.
-            </p>
+              <p v-else class="lesson-text">
+                No reviews yet.
+              </p>
+            </div>
           </section>
         </div>
       </main>
@@ -204,7 +265,7 @@
             }" @click="selectLesson(lesson)">
               <button v-if="isStudent" class="lesson-complete-btn" :class="{ completed: isCompleted(lesson) }"
                 @click.stop="markCompleted(lesson)">
-                ✓
+                <CheckIcon :size="20" />
               </button>
 
               <div v-else class="lesson-number">
@@ -285,6 +346,9 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
+import {
+  CheckIcon,
+} from 'lucide-vue-next'
 
 const route = useRoute()
 
@@ -303,13 +367,28 @@ const showCompletionModal = ref(false)
 
 const completedItems = ref([])
 const quizAnswers = ref({})
+const reviews = ref([])
+const myReview = ref(null)
+
+const discussionMessages = ref([])
+const discussionText = ref('')
+const discussionLoading = ref(false)
+
+const reviewForm = reactive({
+  rating: 5,
+  review: '',
+})
+
+const canReviewCourse = computed(() => {
+  return isStudent.value && courseProgress.value >= 100
+})
 
 const assignmentForm = reactive({
   text_answer: '',
   file: null,
 })
 
-const tabs = ['Overview', 'Resources', 'Discussions', 'Quiz']
+const tabs = ['Overview', 'Resources', 'Discussions', 'Reviews']
 
 const user = computed(() => {
   try {
@@ -486,6 +565,87 @@ async function fetchCourse() {
   }
 }
 
+async function fetchReviews() {
+  try {
+    const res = await axios.get(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/reviews/`,
+      authHeaders()
+    )
+
+    reviews.value = res.data.reviews || []
+    myReview.value = res.data.my_review
+
+    if (myReview.value) {
+      reviewForm.rating = myReview.value.rating
+      reviewForm.review = myReview.value.review || ''
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+async function submitReview() {
+  if (!canReviewCourse.value) {
+    showToast('Complete and pass the course first.')
+    return
+  }
+
+  try {
+    const res = await axios.post(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/reviews/`,
+      {
+        rating: reviewForm.rating,
+        review: reviewForm.review,
+      },
+      authHeaders()
+    )
+
+    myReview.value = res.data
+    await fetchReviews()
+    showToast('Review saved ⭐')
+  } catch (err) {
+    console.error(err)
+    showToast(err.response?.data?.detail || 'Failed to submit review')
+  }
+}
+
+async function fetchDiscussions() {
+  try {
+    const res = await axios.get(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/discussions/`,
+      authHeaders()
+    )
+
+    discussionMessages.value = res.data || []
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+async function submitDiscussion() {
+  if (!discussionText.value.trim()) return
+
+  discussionLoading.value = true
+
+  try {
+    const res = await axios.post(
+      `http://127.0.0.1:8000/api/courses/${route.params.id}/discussions/`,
+      {
+        message: discussionText.value,
+      },
+      authHeaders()
+    )
+
+    discussionMessages.value.push(res.data)
+    discussionText.value = ''
+  } catch (err) {
+    console.error(err)
+    toast.value = 'Could not post message.'
+  } finally {
+    discussionLoading.value = false
+  }
+}
+
 function initQuizAnswers(quiz) {
   quizAnswers.value = {}
 
@@ -578,7 +738,7 @@ async function submitAssignment() {
     assignmentForm.text_answer = ''
     assignmentForm.file = null
 
-    showToast('Assignment submitted ✅')
+    showToast('Assignment submitted')
   } catch (err) {
     console.error(err)
     showToast('Failed to submit assignment')
@@ -665,6 +825,8 @@ async function checkCertificateOnLoad() {
 
 onMounted(async () => {
   await fetchCourse()
+  await fetchReviews()
+  await fetchDiscussions()
   await checkCertificateOnLoad()
 })
 </script>
@@ -1106,5 +1268,118 @@ onMounted(async () => {
 .modal-leave-to {
   opacity: 0;
   transform: scale(0.96);
+}
+
+.review-card {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.review-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.stars {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.stars button {
+  border: none;
+  background: transparent;
+  font-size: 30px;
+  color: #d1d5db;
+  cursor: pointer;
+}
+
+.stars button.active {
+  color: #f59e0b;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.single-review {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  background: #f9fafb;
+}
+
+.single-review span {
+  display: block;
+  color: #f59e0b;
+  margin: 6px 0;
+}
+
+.discussion-card {
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.discussion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.discussion-input {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.discussion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.discussion-message {
+  border: 1px solid #eef2ff;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.discussion-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.teacher-badge {
+  background: #3d5afe;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.discussion-message p {
+  margin: 0 0 8px;
+  color: #334155;
+}
+
+.discussion-message small {
+  color: #64748b;
 }
 </style>

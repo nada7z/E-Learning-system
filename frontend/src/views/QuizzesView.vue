@@ -204,6 +204,15 @@
                   <div class="toggle-knob" />
                 </div>
               </div>
+              <div class="setting-item">
+                <label class="label">Final Exam</label>
+                <div class="toggle" :class="{ on: builder.quiz.is_final_exam }" role="switch"
+                  :aria-checked="builder.quiz.is_final_exam" tabindex="0"
+                  @click="builder.quiz.is_final_exam = !builder.quiz.is_final_exam"
+                  @keydown.enter="builder.quiz.is_final_exam = !builder.quiz.is_final_exam">
+                  <div class="toggle-knob" />
+                </div>
+              </div>
             </div>
 
             <!-- Question list -->
@@ -350,6 +359,15 @@
                   :aria-checked="modal.form.is_published" tabindex="0"
                   @click="modal.form.is_published = !modal.form.is_published"
                   @keydown.enter="modal.form.is_published = !modal.form.is_published">
+                  <div class="toggle-knob" />
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label class="label">Final Exam</label>
+                <div class="toggle mt-1" :class="{ on: modal.form.is_final_exam }" role="switch"
+                  :aria-checked="modal.form.is_final_exam" tabindex="0"
+                  @click="modal.form.is_final_exam = !modal.form.is_final_exam"
+                  @keydown.enter="modal.form.is_final_exam = !modal.form.is_final_exam">
                   <div class="toggle-knob" />
                 </div>
               </div>
@@ -534,6 +552,7 @@ function blankForm() {
     passing_score: 70,
     time_limit_minutes: null,
     is_published: true,
+    is_final_exam: false,
   }
 }
 
@@ -706,6 +725,7 @@ async function saveBuilder() {
     time_limit_minutes:
       builder.quiz.time_limit_minutes || null,
     is_published: builder.quiz.is_published,
+    is_final_exam: builder.quiz.is_final_exam || false,
     questions: builder.questions.map((question, index) => ({
       text: question.text,
       question_type: question.question_type,
@@ -750,6 +770,7 @@ function openEdit(quiz) {
     passing_score: quiz.passing_score,
     time_limit_minutes: quiz.time_limit_minutes,
     is_published: quiz.is_published,
+    is_final_exam: quiz.is_final_exam || false,
   }
 
   modal.errors = {}
@@ -785,6 +806,7 @@ async function saveQuiz() {
     time_limit_minutes:
       modal.form.time_limit_minutes || null,
     is_published: modal.form.is_published,
+    is_final_exam: modal.form.is_final_exam,
     questions: modal.editing
       ? undefined
       : [],

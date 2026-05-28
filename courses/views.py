@@ -3,10 +3,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Course, Enrollment
+from .models import Course, Enrollment, CourseReview, CourseDiscussion
 from .serializers import (
     CourseSerializer,
-    CourseListSerializer
+    CourseListSerializer,
+    CourseReviewSerializer,
+    CourseDiscussionSerializer,
 )
 
 
@@ -178,3 +180,155 @@ def perform_destroy(self, instance):
         raise PermissionDenied("You can only delete your own courses.")
 
     instance.delete()
+    
+class CourseReviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, course_id):
+        reviews = CourseReview.objects.filter(
+            course_id=course_id
+        ).select_related("student")
+
+        my_review = None
+
+        if hasattr(request.user, "student_profile"):
+            my_review = CourseReview.objects.filter(
+                course_id=course_id,
+                student=request.user.student_profile
+            ).first()
+
+        return Response({
+            "reviews": CourseReviewSerializer(
+                reviews,
+                many=True
+            ).data,
+            "my_review": CourseReviewSerializer(my_review).data
+            if my_review else None,
+        })
+
+    def post(self, request, course_id):
+        if not hasattr(request.user, "student_profile"):
+            return Response(
+                {"detail": "Only students can review courses."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        student = request.user.student_profile
+
+        enrollment = Enrollment.objects.filter(
+            student=student,
+            course_id=course_id,
+            completed=True
+        ).first()
+
+        if not enrollment:
+            enrollment = Enrollment.objects.filter(
+                student=student,
+                course_id=course_id,
+                progress_percentage=100
+            ).first()
+
+        if enrollment and not enrollment.completed:
+            enrollment.completed = True
+            enrollment.save(update_fields=["completed"])
+
+        if not enrollment:
+            return Response(
+                {
+                    "detail":
+                    "You can review this course only after completing and passing it."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        review, created = CourseReview.objects.update_or_create(
+            student=student,
+            course_id=course_id,
+            defaults={
+                "rating": request.data.get("rating"),
+                "review": request.data.get("review", ""),
+            }
+        )
+
+        serializer = CourseReviewSerializer(review)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+    
+class CourseDiscussionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _can_access_discussion(self, user, course):
+        if hasattr(user, "teacher_profile"):
+            return course.teacher == user.teacher_profile
+
+        if hasattr(user, "student_profile"):
+            return Enrollment.objects.filter(
+                student=user.student_profile,
+                course=course
+            ).exists()
+
+        return False
+
+    def get(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response(
+                {"detail": "Course not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not self._can_access_discussion(request.user, course):
+            return Response(
+                {"detail": "You cannot access this discussion."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        messages = CourseDiscussion.objects.filter(course=course)
+
+        serializer = CourseDiscussionSerializer(
+            messages,
+            many=True,
+            context={"request": request}
+        )
+
+        return Response(serializer.data)
+
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response(
+                {"detail": "Course not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not self._can_access_discussion(request.user, course):
+            return Response(
+                {"detail": "You cannot write in this discussion."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        message = request.data.get("message", "").strip()
+
+        if not message:
+            return Response(
+                {"detail": "Message is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        discussion = CourseDiscussion.objects.create(
+            course=course,
+            user=request.user,
+            message=message
+        )
+
+        serializer = CourseDiscussionSerializer(
+            discussion,
+            context={"request": request}
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -63,3 +63,42 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.course}"
+    
+class CourseReview(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
+
+    rating = models.PositiveSmallIntegerField()
+    review = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("student", "course")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.student} - {self.course} - {self.rating}/5"
+
+class CourseDiscussion(models.Model):
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="discussions"
+    )
+
+    user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE
+    )
+
+    message = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.course}"
