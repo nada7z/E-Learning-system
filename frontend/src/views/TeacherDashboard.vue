@@ -12,34 +12,14 @@
     </div>
 
     <div class="stat-grid">
-      <StatCard
-        :icon="BookOpen"
-        :value="stats.active_courses"
-        label="Active Courses"
-      />
+      <StatCard :icon="BookOpen" :value="stats.active_courses" label="Active Courses" />
 
-      <StatCard
-        :icon="Users"
-        :value="stats.total_students"
-        label="Total Students"
-        trend="↑ 48 this month"
-        trend-class="trend-up"
-        background="#E0F2F1"
-      />
+      <StatCard :icon="Users" :value="stats.total_students" label="Total Students" trend-class="trend-up"
+        background="#E0F2F1" />
 
-      <StatCard
-        :icon="FileText"
-        :value="stats.pending_grading"
-        label="Pending Grading"
-        background="#FFF3E0"
-      />
+      <StatCard :icon="FileText" :value="stats.pending_grading" label="Pending Grading" background="#FFF3E0" />
 
-      <StatCard
-        :icon="Star"
-        :value="stats.avg_rating ?? 'N/A'"
-        label="Avg Rating"
-        background="#EDE9FE"
-      />
+      <StatCard :icon="Star" :value="stats.avg_rating || 0" label="Avg Rating" background="#EDE9FE" />
     </div>
 
     <div class="card mb-6">
@@ -61,10 +41,7 @@
         </button>
       </div>
 
-      <CourseTable
-        :courses="courses.slice(0, 4)"
-        @navigate="$router.push"
-      />
+      <CourseTable :courses="courses.slice(0, 4)" @navigate="$router.push" />
     </div>
   </div>
 </template>
@@ -121,8 +98,8 @@ const getAuthHeaders = () => {
 
   return token
     ? {
-        Authorization: `Bearer ${token}`,
-      }
+      Authorization: `Bearer ${token}`,
+    }
     : {}
 }
 
@@ -149,7 +126,23 @@ const fetchDashboard = async () => {
       ...(data.stats || data),
     }
 
-    courses.value = data.courses || []
+    courses.value = (data.courses || []).map((course) => ({
+      ...course,
+
+      lessons_count: course.lessons_count ?? course.lessons?.length ?? 0,
+
+      duration_hours: course.duration_hours ?? course.duration ?? 0,
+
+      level: course.level || 'Beginner',
+
+      category: course.category || 'Uncategorized',
+
+      teacher_name: course.teacher_name || 'Teacher',
+
+      price: course.is_free ? 0 : Number(course.price ?? 0),
+
+      status: course.is_published ? 'Published' : 'Draft',
+    }))
 
     enrollmentTrends.value = data.enrollment_trends || {
       labels: [],
@@ -180,11 +173,11 @@ const renderChart = () => {
   const sourceDatasets = enrollmentTrends.value.datasets?.length
     ? enrollmentTrends.value.datasets
     : [
-        {
-          label: 'Enrollments',
-          data: [0, 0, 0, 0, 0, 0],
-        },
-      ]
+      {
+        label: 'Enrollments',
+        data: [0, 0, 0, 0, 0, 0],
+      },
+    ]
 
   chart = new Chart(enrollCanvas.value, {
     type: 'line',

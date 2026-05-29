@@ -128,6 +128,10 @@ const errors = reactive({
   title: '',
   description: '',
   category: '',
+  level: '',
+  language: '',
+  duration: '',
+  certificate: '',
 })
 
 const toast = reactive({
@@ -342,8 +346,20 @@ function validate() {
   errors.title = form.title.trim() ? '' : 'Title is required'
   errors.description = form.description.trim() ? '' : 'Description is required'
   errors.category = form.category ? '' : 'Please select a category'
+  errors.level = form.level ? '' : 'Please select a level'
+  errors.language = form.language ? '' : 'Please select a language'
+  errors.duration = form.duration ? '' : 'Duration is required'
+  errors.certificate = form.certificate ? '' : 'Please choose certificate option'
 
-  return !errors.title && !errors.description && !errors.category
+  return (
+    !errors.title &&
+    !errors.description &&
+    !errors.category &&
+    !errors.level &&
+    !errors.language &&
+    !errors.duration &&
+    !errors.certificate
+  )
 }
 
 function validateContentStep() {

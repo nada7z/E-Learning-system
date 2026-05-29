@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Course, CourseReview, Enrollment, CourseDiscussion
+from .models import Course, CourseReview, Enrollment, CourseDiscussion, Payment
 from lessons.models import Lesson
 
 from quizzes.models import Quiz, Question, AnswerOption
@@ -469,3 +469,37 @@ class CourseDiscussionSerializer(serializers.ModelSerializer):
             return "Teacher"
 
         return "Student"
+    
+class PaymentSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    course_title = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "course",
+            "course_title",
+            "amount",
+            "status",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "student",
+            "student_name",
+            "course",
+            "course_title",
+            "amount",
+            "status",
+            "created_at",
+        ]
+
+    def get_student_name(self, obj):
+        return str(obj.student)
+
+    def get_course_title(self, obj):
+        return obj.course.title

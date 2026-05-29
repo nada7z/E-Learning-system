@@ -7,12 +7,13 @@ from rest_framework.response import Response
 
 from notifications.utils import create_notification
 
-from .models import Course, Enrollment, CourseReview, CourseDiscussion
+from .models import Course, Enrollment, CourseReview, CourseDiscussion, Payment
 from .serializers import (
     CourseSerializer,
     CourseListSerializer,
     CourseReviewSerializer,
     CourseDiscussionSerializer,
+    PaymentSerializer,
 )
 
 
@@ -175,30 +176,80 @@ class EnrollCourseView(APIView):
             status=status.HTTP_201_CREATED
         )
     
-def perform_update(self, serializer):
-    user = self.request.user
+class BuyCourseView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    if not hasattr(user, "teacher_profile"):
-        raise PermissionDenied("Only teachers can update courses.")
+    def post(self, request, course_id):
+        if not hasattr(request.user, "student_profile"):
+            return Response(
+                {"detail": "Only students can buy courses."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-    course = self.get_object()
+        student = request.user.student_profile
 
-    if course.teacher != user.teacher_profile:
-        raise PermissionDenied("You can only update your own courses.")
+        try:
+            course = Course.objects.get(
+                id=course_id,
+                is_published=True
+            )
+        except Course.DoesNotExist:
+            return Response(
+                {"detail": "Course not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-    serializer.save()
+        if course.is_free:
+            return Response(
+                {"detail": "This course is free. Use enroll instead."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        if Enrollment.objects.filter(student=student, course=course).exists():
+            return Response(
+                {"detail": "Already enrolled."},
+                status=status.HTTP_200_OK
+            )
 
-def perform_destroy(self, instance):
-    user = self.request.user
+        payment, created = Payment.objects.get_or_create(
+            student=student,
+            course=course,
+            defaults={
+                "amount": course.price,
+                "status": "paid",
+            }
+        )
 
-    if not hasattr(user, "teacher_profile"):
-        raise PermissionDenied("Only teachers can delete courses.")
+        payment.amount = course.price
+        payment.status = "paid"
+        payment.save()
 
-    if instance.teacher != user.teacher_profile:
-        raise PermissionDenied("You can only delete your own courses.")
+        Enrollment.objects.create(
+            student=student,
+            course=course
+        )
 
-    instance.delete()
+        create_notification(
+            request.user,
+            "Payment successful",
+            f"You bought {course.title}. You can start learning now."
+        )
+
+        create_notification(
+            course.teacher.user,
+            "New course purchase",
+            f"{student} bought your course {course.title}."
+        )
+
+        serializer = PaymentSerializer(payment)
+
+        return Response(
+            {
+                "detail": "Payment successful. You are enrolled.",
+                "payment": serializer.data,
+            },
+            status=status.HTTP_201_CREATED
+        )
     
 class CourseReviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]

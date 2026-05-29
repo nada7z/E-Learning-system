@@ -7,7 +7,6 @@
           <th>Category</th>
           <th>Level</th>
           <th>Teacher</th>
-          <th>Lessons</th>
           <th>Duration</th>
           <th>Price</th>
           <th v-if="role !== 'student'">Status</th>
@@ -47,16 +46,10 @@
             {{ course.teacher_name || 'Teacher' }}
           </td>
 
-          <td>
-            {{ course.lessons_count || 0 }}
-          </td>
+          <td>{{ course.duration_hours ?? 0 }}h</td>
 
           <td>
-            {{ course.duration_hours || 0 }}h
-          </td>
-
-          <td>
-            {{ course.is_free ? 'Free' : `$${course.price}` }}
+            {{ course.is_free ? 'Free' : `$${course.price ?? 0}` }}
           </td>
 
           <td v-if="role !== 'student'">

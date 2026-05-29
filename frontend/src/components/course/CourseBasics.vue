@@ -58,40 +58,61 @@
       </div>
 
       <div class="field">
-        <label class="label">Level</label>
+        <label class="label">
+          Level <span class="req">*</span>
+        </label>
 
-        <select v-model="form.level" class="input">
+        <select v-model="form.level" class="input" :class="{ error: errors.level }">
           <option v-for="level in levels" :key="level" :value="level">
             {{ level }}
           </option>
         </select>
+        <p v-if="errors.level" class="field-error">
+          {{ errors.level }}
+        </p>
       </div>
     </div>
 
     <div class="grid-3">
       <div class="field">
-        <label class="label">Language</label>
+        <label class="label">
+          Language <span class="req">*</span>
+        </label>
 
-        <select v-model="form.language" class="input">
+        <select v-model="form.language" class="input" :class="{ error: errors.language }">
           <option v-for="language in languages" :key="language" :value="language">
             {{ language }}
           </option>
         </select>
+        <span v-if="errors.language" class="err-msg">
+          {{ errors.language }}
+        </span>
       </div>
 
       <div class="field">
-        <label class="label">Duration hours</label>
+        <label class="label">
+          Duration hours <span class="req">*</span>
+        </label>
 
-        <input v-model.number="form.duration" class="input" type="number" min="1" max="500" placeholder="e.g. 40" />
+        <input v-model.number="form.duration" class="input" :class="{ error: errors.duration }" type="number"
+          placeholder="e.g. 10" />
+        <span v-if="errors.duration" class="err-msg">
+          {{ errors.duration }}
+        </span>
       </div>
 
       <div class="field">
-        <label class="label">Certificate</label>
+        <label class="label">
+          Certificate <span class="req">*</span>
+        </label>
 
-        <select v-model="form.certificate" class="input">
+        <select v-model="form.certificate" class="input" :class="{ error: errors.certificate }">
           <option value="yes">Yes — on completion</option>
           <option value="no">No certificate</option>
         </select>
+        <p v-if="errors.certificate" class="field-error">
+          {{ errors.certificate }}
+        </p>
       </div>
     </div>
 

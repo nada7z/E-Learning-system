@@ -127,7 +127,6 @@
               <th>Pass Rate</th>
               <th>Rating</th>
               <th>Revenue</th>
-              <th>Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -176,11 +175,6 @@
               <td>
                 <span v-if="c.is_free" class="badge badge-gray">Free</span>
                 <span v-else class="fw-600">${{ c.revenue.toLocaleString() }}</span>
-              </td>
-              <td>
-                <span class="trend-chip" :class="c.trend > 0 ? 'trend-up-chip' : 'trend-dn-chip'">
-                  {{ c.trend > 0 ? '↑' : '↓' }} {{ Math.abs(c.trend) }}%
-                </span>
               </td>
             </tr>
           </tbody>
@@ -284,11 +278,7 @@ import {
   BookOpen,
   Users,
   GraduationCap,
-  ClipboardList,
   Star,
-  Search,
-  Download,
-  TrendingUp,
 } from 'lucide-vue-next'
 
 const enrollChart = ref(null)
@@ -305,6 +295,7 @@ const quizzes = ref([])
 const attempts = ref([])
 const assignments = ref([])
 const submissions = ref([])
+const reviews = ref([])
 
 const selectedCourseId = ref('')
 const tableSortBy = ref('enrolled')
@@ -341,10 +332,19 @@ const kpi = computed(() => {
     }
   }
 
+  const ratedCourses = list.filter((course) => course.rating !== 'N/A')
+
+  const avgRating = ratedCourses.length
+    ? (
+      ratedCourses.reduce((sum, course) => sum + Number(course.rating), 0) /
+      ratedCourses.length
+    ).toFixed(1)
+    : 'N/A'
+
   return {
     totalCourses: list.length,
     totalEnrolled: list.reduce((sum, c) => sum + c.enrolled, 0),
-    avgRating: 'N/A',
+    avgRating,
     avgCompletion: Math.round(
       list.reduce((sum, c) => sum + c.completion, 0) / list.length
     ),
@@ -431,6 +431,19 @@ function getCourseStats(course, index) {
     )
   )
 
+  const courseReviews =
+    reviews.value.find((item) => Number(item.course_id) === Number(course.id))
+      ?.reviews || []
+
+  const avgRating = courseReviews.length
+    ? (
+      courseReviews.reduce(
+        (sum, review) => sum + Number(review.rating || 0),
+        0
+      ) / courseReviews.length
+    ).toFixed(1)
+    : 'N/A'
+
   const students = new Set()
 
   courseAttempts.forEach((attempt) => {
@@ -481,15 +494,15 @@ function getCourseStats(course, index) {
     shortTitle: course.title?.slice(0, 16) || 'Course',
     thumb: thumbFor(index),
     thumbBg: bgFor(index),
-    level: course.level,
+    level: course.level || 'Beginner',
     lessons: course.lessons_count || course.lessons?.length || 0,
     color: colorFor(index),
     enrolled,
     completion,
     avg_quiz_score: avgQuizScore,
     pass_rate: passRate,
-    rating: 'N/A',
-    reviews: 0,
+    rating: avgRating,
+    reviews: courseReviews.length,
     revenue: course.is_free ? 0 : enrolled * price,
     is_free: course.is_free,
     trend: 0,
@@ -517,7 +530,27 @@ async function fetchData() {
     assignments.value = assignmentsRes.data
     submissions.value = submissionsRes.data
 
-    courses.value = coursesRes.data.map((course, index) =>
+    const coursesData = coursesRes.data
+
+    reviews.value = await Promise.all(
+      coursesData.map((course) =>
+        axios
+          .get(
+            `http://127.0.0.1:8000/api/courses/${course.id}/reviews/`,
+            authHeaders()
+          )
+          .then((res) => ({
+            course_id: course.id,
+            reviews: res.data.reviews || [],
+          }))
+          .catch(() => ({
+            course_id: course.id,
+            reviews: [],
+          }))
+      )
+    )
+
+    courses.value = coursesData.map((course, index) =>
       getCourseStats(course, index)
     )
 
@@ -533,41 +566,16 @@ function drillDown(course) {
   panel.course = course
 
   panel.lessons = [
-    {
-      title: 'Course activity',
-      pct: course.completion,
-    },
-    {
-      title: 'Quiz performance',
-      pct: course.avg_quiz_score,
-    },
-    {
-      title: 'Quiz pass rate',
-      pct: course.pass_rate,
-    },
+    { title: 'Course activity', pct: course.completion },
+    { title: 'Quiz performance', pct: course.avg_quiz_score },
+    { title: 'Quiz pass rate', pct: course.pass_rate },
   ]
 
   panel.funnel = [
-    {
-      label: 'Enrolled',
-      pct: 100,
-      color: '#3D5AFE',
-    },
-    {
-      label: 'Active',
-      pct: course.completion,
-      color: '#00897B',
-    },
-    {
-      label: 'Passed quizzes',
-      pct: course.pass_rate,
-      color: '#F57C00',
-    },
-    {
-      label: 'Completed',
-      pct: course.completion,
-      color: '#C62828',
-    },
+    { label: 'Enrolled', pct: 100, color: '#3D5AFE' },
+    { label: 'Active', pct: course.completion, color: '#00897B' },
+    { label: 'Passed quizzes', pct: course.pass_rate, color: '#F57C00' },
+    { label: 'Completed', pct: course.completion, color: '#C62828' },
   ]
 
   panel.open = true
@@ -650,13 +658,26 @@ function buildCharts() {
     },
   })
 
+  const ratingCounts = [1, 2, 3, 4, 5].map((star) => {
+    return list.reduce((sum, course) => {
+      const courseReviews =
+        reviews.value.find((item) => Number(item.course_id) === Number(course.id))
+          ?.reviews || []
+
+      return (
+        sum +
+        courseReviews.filter((review) => Number(review.rating) === star).length
+      )
+    }, 0)
+  })
+
   chartInstances.rating = new Chart(ratingChart.value, {
     type: 'bar',
     data: {
       labels: ['1★', '2★', '3★', '4★', '5★'],
       datasets: [
         {
-          data: [0, 0, 0, 0, 0],
+          data: ratingCounts,
           backgroundColor: [
             '#FFCDD2',
             '#FFCC80',

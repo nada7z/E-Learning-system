@@ -10,7 +10,11 @@ from rest_framework.views import APIView
 
 from accounts.models import User
 from assignments.models import Assignment, Submission
-from courses.models import Course, Enrollment
+from courses.models import (
+    Course,
+    Enrollment,
+    CourseReview,
+)
 from lessons.models import Lesson
 from quizzes.models import QuizAttempt
 from .models import ActivityLog
@@ -77,6 +81,9 @@ class DashboardView(APIView):
             "teacher": teacher_name,
             "lessons": lessons_count,
             "thumbnail": course.thumbnail.url if getattr(course, "thumbnail", None) else None,
+            "level": course.level,
+            "duration_hours": course.duration_hours,
+            "price": course.price,
         }
 
         if progress is not None:
@@ -196,6 +203,13 @@ class DashboardView(APIView):
             .filter(assignment__course__teacher=teacher, grade__isnull=True)
             .count()
         )
+       
+        avg_rating = (
+            CourseReview.objects
+            .filter(course__teacher=teacher)
+            .aggregate(avg=Avg("rating"))
+            .get("avg")
+        )
 
         course_rows = []
 
@@ -240,7 +254,7 @@ class DashboardView(APIView):
                 "active_courses": active_courses,
                 "total_students": total_students,
                 "pending_grading": pending_grading,
-                "avg_rating": None,
+                "avg_rating": round(avg_rating, 1) if avg_rating else 0,
             },
             "courses": course_rows,
             "enrollment_trends": {

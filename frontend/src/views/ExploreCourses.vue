@@ -332,7 +332,7 @@
                           ? 'Enrolling…'
                           : overlay.course?.is_free
                             ? 'Enroll for free'
-                            : 'Enroll now'
+                            : `Buy for $${overlay.course?.price}`
                     }}
                   </button>
 
@@ -578,7 +578,11 @@ function handleEnrollClick(course) {
     return
   }
 
-  enroll(course)
+  if (course.is_free) {
+    enroll(course)
+  } else {
+    buyCourse(course)
+  }
 }
 
 async function enroll(course) {
@@ -617,6 +621,33 @@ async function enroll(course) {
     }
   } finally {
     enrolling.value = false
+  }
+}
+
+async function buyCourse(course) {
+  try {
+    const token = localStorage.getItem('access_token')
+
+    const response = await axios.post(
+      `http://127.0.0.1:8000/api/student/courses/${course.id}/buy/`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    course.is_enrolled = true
+
+    alert(response.data.detail)
+  } catch (error) {
+    console.error(error)
+
+    alert(
+      error.response?.data?.detail ||
+      'Payment failed.'
+    )
   }
 }
 

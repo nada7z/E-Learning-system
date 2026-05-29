@@ -7,7 +7,8 @@ from .views import (
     CourseReviewView,
     CourseViewSet,
     PublishedCoursesView,
-    EnrollCourseView
+    EnrollCourseView,
+    BuyCourseView,
 )
 
 router = DefaultRouter()
@@ -35,5 +36,10 @@ urlpatterns = router.urls + [
     "courses/<int:course_id>/discussions/",
     CourseDiscussionView.as_view(),
     name="course-discussions",
+   ),
+   path(
+    "student/courses/<int:course_id>/buy/",
+    BuyCourseView.as_view(),
+    name="buy-course",
    ),
 ]
