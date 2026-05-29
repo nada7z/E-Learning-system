@@ -1,58 +1,32 @@
 <template>
   <header class="topbar">
 
-    <button
-      class="hamburger"
-      @click="$emit('toggle-sidebar')"
-    >
+    <button class="hamburger" @click="$emit('toggle-sidebar')">
       <Menu class="top-icon" />
     </button>
 
     <div class="topbar-search">
       <Search class="search-icon" />
 
-      <input
-        type="text"
-        placeholder="Search courses, lessons, users…"
-      />
+      <input type="text" placeholder="Search courses, lessons, users…" />
     </div>
 
     <div class="topbar-actions">
 
-      <div
-        class="icon-btn"
-        @click="$emit('navigate', 'notifications')"
-        title="Notifications"
-      >
+      <div class="icon-btn" @click="goTo('notifications')" title="Notifications">
         <Bell class="top-icon" />
 
-        <div
-          class="notif-dot"
-          v-if="unreadCount"
-        ></div>
+        <div class="notif-dot" v-if="unreadCount"></div>
       </div>
 
-      <div
-        class="icon-btn"
-        @click="$emit('toggle-dark')"
-        title="Toggle dark mode"
-      >
-        <Sun
-          v-if="dark"
-          class="top-icon"
-        />
+      <div class="icon-btn" @click="$emit('toggle-dark')" title="Toggle dark mode">
+        <Sun v-if="dark" class="top-icon" />
 
-        <Moon
-          v-else
-          class="top-icon"
-        />
+        <Moon v-else class="top-icon" />
       </div>
 
-      <div
-        class="avatar"
-        style="cursor:pointer;background:var(--accent-light);color:var(--accent)"
-        @click="$emit('toast', 'Profile page coming soon!')"
-      >
+      <div class="avatar" style="cursor:pointer;background:var(--accent-light);color:var(--accent)"
+        @click="$emit('toast', 'Profile page coming soon!')">
         {{ avatarText }}
       </div>
 
@@ -92,4 +66,3 @@ const avatarText = computed(() =>
       : 'AD'
 )
 </script>
-

@@ -291,8 +291,8 @@ function addLesson(type) {
     lesson.title = 'New Assignment'
     lesson.meta = 'Assignment'
     lesson.assignment = {
-      instructions: '',
-      due_date: '',
+      description: '',
+      deadline: '',
       max_score: 100,
     }
   }
@@ -388,8 +388,8 @@ function buildLessonsPayload() {
       lesson.type === 'assignment'
         ? {
           title: lesson.title,
-          instructions: lesson.assignment?.instructions || lesson.content || '',
-          due_date: lesson.assignment?.due_date || null,
+          description: lesson.assignment?.description || lesson.content || '',
+          deadline: lesson.assignment?.deadline || '',
           max_score: lesson.assignment?.max_score || 100,
         }
         : null,
@@ -474,8 +474,9 @@ async function handleNext() {
       id: course.id,
     })
   } catch (error) {
-    console.error(error)
-    showToast('Failed to save course')
+    console.error('STATUS:', error.response?.status)
+    console.error('DATA:', error.response?.data)
+    console.error('FULL ERROR:', error)
   }
 }
 
@@ -527,14 +528,36 @@ async function saveExtraQuizAndAssignments(courseId, token) {
     Authorization: `Bearer ${token}`,
   }
 
-  for (const lesson of form.lessons) {
+  for (const [index, lesson] of form.lessons.entries()) {
+    // 1. Save normal lessons: reading + video
+    if (lesson.type === 'reading' || lesson.type === 'video') {
+      const lessonPayload = {
+        course: courseId,
+        title: lesson.title || 'Lesson',
+        content: lesson.content || '',
+        video_url: lesson.video_url || '',
+        video_file: null,
+        lesson_type: lesson.type,
+        order_number: index + 1,
+        is_preview: lesson.is_preview || false,
+      }
+
+      await axios.post(
+        'http://127.0.0.1:8000/api/lessons/',
+        lessonPayload,
+        { headers }
+      )
+    }
+
+    // 2. Save quizzes
     if (lesson.type === 'quiz') {
       const payload = {
         course: courseId,
-        title: lesson.title,
+        title: lesson.title || 'Quiz',
         description: lesson.content || '',
         passing_score: lesson.quiz?.passing_score || 50,
         time_limit_minutes: lesson.quiz?.time_limit_minutes || null,
+        is_final_exam: !!lesson.quiz?.is_final_exam,
         is_published: true,
         questions: lesson.quiz?.questions || [],
       }
@@ -556,12 +579,22 @@ async function saveExtraQuizAndAssignments(courseId, token) {
       }
     }
 
+    // 3. Save assignments
     if (lesson.type === 'assignment') {
+      const rawDeadline = lesson.assignment?.deadline
+
+      if (!rawDeadline) {
+        throw new Error(`Assignment "${lesson.title}" needs a deadline`)
+      }
+
       const payload = {
         course: courseId,
-        title: lesson.title,
-        description: lesson.content || '',
-        deadline: lesson.assignment?.due_date || null,
+        title: lesson.title || 'Assignment',
+        description:
+          lesson.assignment?.description?.trim() ||
+          lesson.content?.trim() ||
+          'Assignment',
+        deadline: new Date(rawDeadline).toISOString(),
         max_score: lesson.assignment?.max_score || 100,
       }
 

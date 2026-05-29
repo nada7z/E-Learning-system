@@ -1,7 +1,11 @@
+from urllib import request
+
 from rest_framework import viewsets, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+from notifications.utils import create_notification
 
 from .models import Course, Enrollment, CourseReview, CourseDiscussion
 from .serializers import (
@@ -147,6 +151,21 @@ class EnrollCourseView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
+
+        student = request.user.student_profile
+        teacher_user = course.teacher.user
+
+        create_notification(
+            request.user,
+            "Welcome to the course",
+            f"You are now enrolled in {course.title}. You can start learning now."
+        )
+
+        create_notification(
+            teacher_user,
+            "New student enrolled",
+            f"{student} enrolled in your course {course.title}."
+        )
 
         return Response(
             {

@@ -204,14 +204,16 @@ async function fetchCourses() {
   try {
     const token = localStorage.getItem('access_token')
 
-    const response = await axios.get(
-      'http://127.0.0.1:8000/api/courses/',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+    const url =
+      role.value === 'student'
+        ? 'http://127.0.0.1:8000/api/continue-learning/'
+        : 'http://127.0.0.1:8000/api/courses/'
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
       }
-    )
+    })
 
     courses.value = response.data
   } catch (err) {

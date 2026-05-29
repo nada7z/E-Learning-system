@@ -56,12 +56,12 @@ class AssignmentNestedSerializer(serializers.Serializer):
         allow_blank=True
     )
 
-    instructions = serializers.CharField(
+    description = serializers.CharField(
         required=False,
         allow_blank=True
     )
 
-    due_date = serializers.DateTimeField(
+    deadline = serializers.DateTimeField(
         required=False,
         allow_null=True
     )
@@ -330,8 +330,8 @@ class CourseSerializer(serializers.ModelSerializer):
                     course=course,
                     lesson=lesson,
                     title=assignment_data.get("title") or lesson.title,
-                    instructions=assignment_data.get("instructions", ""),
-                    due_date=assignment_data.get("due_date"),
+                    description=assignment_data.get("description") or lesson_data.get("content") or "Assignment",
+                    deadline=assignment_data.get("deadline"),
                     max_score=assignment_data.get("max_score", 100),
                 )
 

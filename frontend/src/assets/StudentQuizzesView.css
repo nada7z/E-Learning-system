@@ -458,3 +458,123 @@
         width: 100%;
     }
 }
+
+.attempt-row {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #E6E8F0;
+    border-radius: 14px;
+    background: #F8FAFF;
+}
+
+.result-line {
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+.attempts-details {
+    margin-top: 12px;
+}
+
+.attempts-details summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #3D5AFE;
+}
+
+.attempt-row {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #E6E8F0;
+    border-radius: 12px;
+    background: #F8FAFF;
+}
+
+.history-attempt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid #E6E8F0;
+}
+
+.history-attempt-row:last-child {
+    border-bottom: none;
+}
+
+.history-attempt-row p {
+    margin: 4px 0 0;
+    color: #777;
+    font-size: 14px;
+}
+
+.history-score {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-card {
+    width: min(560px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 22px;
+    padding: 24px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.modal-sub {
+    margin: 6px 0 0;
+    color: #6b7280;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 12px;
+    background: #f3f4f6;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.modal-body {
+    padding: 18px 0;
+}
+
+.modal-actions {
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-actions .btn {
+    width: 100%;
+}

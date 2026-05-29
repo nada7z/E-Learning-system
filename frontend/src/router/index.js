@@ -117,6 +117,12 @@ const routes = [
         name: 'CoursePerformance',
         component: () => import('@/views/CoursePerformance.vue'),
         meta: { role: 'teacher' }
+      },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/NotificationsView.vue'),
+        meta: { role: 'teacher' }
       }
     ]
   },

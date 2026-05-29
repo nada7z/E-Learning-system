@@ -153,12 +153,12 @@
                 Assignment instructions
               </label>
 
-              <textarea v-model="lesson.assignment.instructions" class="input lesson-textarea" rows="6"
+              <textarea v-model="lesson.assignment.description" class="input lesson-textarea" rows="6"
                 placeholder="Explain what the student must submit..."></textarea>
 
               <label class="field-label">Due date</label>
 
-              <input v-model="lesson.assignment.due_date" class="input" type="datetime-local" />
+              <input v-model="lesson.assignment.deadline" class="input" type="datetime-local" />
 
               <label class="field-label">Max score</label>
 

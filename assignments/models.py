@@ -6,6 +6,14 @@ from accounts.models import Student
 class Assignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
 
+    lesson = models.OneToOneField(
+        "lessons.Lesson",
+        on_delete=models.CASCADE,
+        related_name="assignment",
+        blank=True,
+        null=True
+    )
+
     title = models.CharField(max_length=255)
     description = models.TextField()
     deadline = models.DateTimeField()
@@ -28,6 +36,9 @@ class Submission(models.Model):
 
     grade = models.FloatField(blank=True, null=True)
     feedback = models.TextField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('assignment', 'student')
 
     @property
     def passed(self):

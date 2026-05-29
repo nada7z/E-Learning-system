@@ -1,21 +1,20 @@
 <template>
   <div class="page">
-
-    <!-- Page header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Assignments</h1>
+        <h1 class="page-title">{{ isStudent ? 'My Assignments' : 'Assignments' }}</h1>
         <p class="page-sub">
-          {{ filteredAssignments.length }} assignment{{ filteredAssignments.length !== 1 ? 's' : '' }}
-          across {{ courses.length }} course{{ courses.length !== 1 ? 's' : '' }}
+          {{ isStudent ? 'View your assignment submissions, grades, and feedback' : `${filteredAssignments.length}
+          assignments
+          across ${courses.length} courses` }}
         </p>
       </div>
-      <button class="btn btn-primary" @click="openCreate">
+
+      <button v-if="!isStudent" class="btn btn-primary" @click="openCreate">
         + New Assignment
       </button>
     </div>
 
-    <!-- Filters bar -->
     <div class="filters-bar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -34,25 +33,22 @@
         <option value="past_due">Past due</option>
       </select>
 
-      <div class="tab-bar">
+      <div v-if="!isStudent" class="tab-bar">
         <button class="tab" :class="{ active: view === 'list' }" @click="view = 'list'">List</button>
         <button class="tab" :class="{ active: view === 'grade' }" @click="view = 'grade'">Grade</button>
       </div>
     </div>
 
-    <!-- ── LIST VIEW ── -->
     <template v-if="view === 'list'">
-      <!-- Empty state -->
       <div v-if="!filteredAssignments.length" class="empty-state">
         <div class="empty-icon">📋</div>
         <p class="empty-title">No assignments found</p>
-        <p class="empty-sub">Try adjusting your filters or create a new assignment.</p>
-        <button class="btn btn-primary" @click="openCreate">+ New Assignment</button>
+        <p class="empty-sub">Try adjusting your filters.</p>
+        <button v-if="!isStudent" class="btn btn-primary" @click="openCreate">+ New Assignment</button>
       </div>
 
       <div v-else class="assignment-list">
         <div v-for="a in filteredAssignments" :key="a.id" class="assignment-card">
-          <!-- Left accent -->
           <div class="card-accent" :class="deadlineClass(a.deadline)" />
 
           <div class="card-body">
@@ -70,22 +66,24 @@
                     {{ formatDate(a.deadline) }}
                   </span>
                 </div>
+
                 <div class="meta-item">
                   <span class="meta-label">Max score</span>
                   <span class="meta-val">{{ a.max_score }} pts</span>
                 </div>
-                <div class="meta-item">
+
+                <div v-if="!isStudent" class="meta-item">
                   <span class="meta-label">Submissions</span>
                   <span class="meta-val">{{ a.submissions_count }} / {{ a.enrolled_count }}</span>
                 </div>
+
                 <span class="status-badge" :class="deadlineClass(a.deadline)">
                   {{ deadlineLabel(a.deadline) }}
                 </span>
               </div>
             </div>
 
-            <!-- Submission progress -->
-            <div class="submission-progress">
+            <div v-if="!isStudent" class="submission-progress">
               <div class="progress-bar">
                 <div class="progress-fill" :style="{
                   width: submissionRate(a) + '%',
@@ -96,19 +94,44 @@
             </div>
           </div>
 
-          <!-- Actions -->
           <div class="card-actions">
-            <button class="btn btn-ghost btn-sm" @click="openEdit(a)">Edit</button>
-            <button class="btn btn-primary btn-sm" @click="openGrade(a)">Grade →</button>
-            <button class="icon-btn danger" @click="confirmDelete(a)" title="Delete assignment">🗑</button>
+            <template v-if="isStudent">
+              <div class="student-result-box">
+                <template v-if="getSubmission(a.id)">
+                  <span class="status-badge status-green">✓ Submitted</span>
+
+                  <p class="result-line">
+                    <strong>Grade:</strong>
+                    {{ getSubmission(a.id).grade ?? 'Not graded yet' }}
+                    <span v-if="getSubmission(a.id).grade != null">/ {{ a.max_score }}</span>
+                  </p>
+
+                  <p class="result-line">
+                    <strong>Feedback:</strong>
+                    {{ getSubmission(a.id).feedback || 'No feedback yet' }}
+                  </p>
+                </template>
+
+                <template v-else>
+                  <span class="status-badge status-warn">Not submitted yet</span>
+                  <p class="result-line text-muted">
+                    Submit this assignment from the course detail page.
+                  </p>
+                </template>
+              </div>
+            </template>
+
+            <template v-else>
+              <button class="btn btn-ghost btn-sm" @click="openEdit(a)">Edit</button>
+              <button class="btn btn-primary btn-sm" @click="openGrade(a)">Grade →</button>
+              <button class="icon-btn danger" @click="confirmDelete(a)" title="Delete assignment">🗑</button>
+            </template>
           </div>
         </div>
       </div>
     </template>
 
-    <!-- ── GRADE VIEW ── -->
-    <template v-if="view === 'grade'">
-      <!-- Assignment selector -->
+    <template v-if="!isStudent && view === 'grade'">
       <div class="grade-selector">
         <span class="grade-selector-label">Assignment:</span>
         <select v-model="gradeTarget" class="input filter-select" style="flex:1; max-width:360px">
@@ -125,11 +148,11 @@
 
       <template v-else>
         <div class="grade-stats">
-          <div class="stat-pill"><span>📬</span> {{ currentAssignment.submissions_count }} submitted</div>
-          <div class="stat-pill"><span>⏳</span> {{ currentAssignment.enrolled_count - currentAssignment.graded_count }}
-            pending grade</div>
-          <div class="stat-pill"><span>✅</span> {{ currentAssignment.graded_count }} graded</div>
-          <div class="stat-pill"><span>📊</span> Avg {{ currentAssignment.avg_grade ?? '—' }} pts</div>
+          <div class="stat-pill"><span>📬</span> {{ currentAssignment?.submissions_count }} submitted</div>
+          <div class="stat-pill"><span>⏳</span> {{ currentAssignment?.enrolled_count - currentAssignment?.graded_count
+          }} pending grade</div>
+          <div class="stat-pill"><span>✅</span> {{ currentAssignment?.graded_count }} graded</div>
+          <div class="stat-pill"><span>📊</span> Avg {{ currentAssignment?.avg_grade ?? '—' }} pts</div>
         </div>
 
         <div class="table-wrap">
@@ -145,6 +168,7 @@
                 <th>Save</th>
               </tr>
             </thead>
+
             <tbody>
               <tr v-for="sub in currentSubmissions" :key="sub.id">
                 <td>
@@ -155,27 +179,31 @@
                     {{ sub.student_name }}
                   </div>
                 </td>
+
                 <td class="text-muted text-sm">{{ formatDate(sub.submitted_at) }}</td>
+
                 <td>
                   <a class="file-link" :href="sub.file_url" target="_blank">
                     📎 {{ sub.file_name }}
                   </a>
                 </td>
+
                 <td>
-                  <div class="grade-input-wrap">
-                    <input v-model.number="sub.grade" class="input grade-input" type="number" :min="0"
-                      :max="currentAssignment.max_score" :placeholder="'/ ' + currentAssignment.max_score" />
-                  </div>
+                  <input v-model.number="sub.grade" class="input grade-input" type="number" :min="0"
+                    :max="currentAssignment.max_score" :placeholder="'/ ' + currentAssignment.max_score" />
                 </td>
+
                 <td>
                   <input v-model="sub.feedback" class="input" style="min-width:180px"
                     placeholder="Optional feedback…" />
                 </td>
+
                 <td>
                   <span class="status-badge" :class="sub.grade != null ? 'status-green' : 'status-warn'">
                     {{ sub.grade != null ? 'Graded' : 'Pending' }}
                   </span>
                 </td>
+
                 <td>
                   <button class="btn btn-primary btn-sm" :disabled="sub.grade == null" @click="saveGrade(sub)">
                     Save
@@ -188,7 +216,6 @@
       </template>
     </template>
 
-    <!-- ── MODAL: Create / Edit ── -->
     <Transition name="modal">
       <div v-if="modal.open" class="modal-backdrop" @click.self="modal.open = false">
         <div class="modal">
@@ -209,15 +236,14 @@
 
             <div class="field">
               <label class="label">Title <span class="req">*</span></label>
-              <input v-model="modal.form.title" class="input" :class="{ error: modal.errors.title }"
-                placeholder="e.g. Build a REST API with Django" />
+              <input v-model="modal.form.title" class="input" :class="{ error: modal.errors.title }" />
               <span v-if="modal.errors.title" class="err-msg">⚠ {{ modal.errors.title }}</span>
             </div>
 
             <div class="field">
               <label class="label">Description / Instructions <span class="req">*</span></label>
               <textarea v-model="modal.form.description" class="input" rows="5"
-                :class="{ error: modal.errors.description }" placeholder="Explain what the student must submit…" />
+                :class="{ error: modal.errors.description }" />
               <span v-if="modal.errors.description" class="err-msg">⚠ {{ modal.errors.description }}</span>
             </div>
 
@@ -228,9 +254,10 @@
                   :class="{ error: modal.errors.deadline }" />
                 <span v-if="modal.errors.deadline" class="err-msg">⚠ {{ modal.errors.deadline }}</span>
               </div>
+
               <div class="field">
-                <label class="label">Max score (pts)</label>
-                <input v-model.number="modal.form.max_score" class="input" type="number" min="1" placeholder="100" />
+                <label class="label">Max score</label>
+                <input v-model.number="modal.form.max_score" class="input" type="number" min="1" />
               </div>
             </div>
           </div>
@@ -245,7 +272,6 @@
       </div>
     </Transition>
 
-    <!-- ── DELETE CONFIRM ── -->
     <Transition name="modal">
       <div v-if="deleteConfirm.open" class="modal-backdrop" @click.self="deleteConfirm.open = false">
         <div class="modal modal-sm">
@@ -253,12 +279,13 @@
             <h2 class="modal-title">Delete assignment?</h2>
             <button class="icon-btn" @click="deleteConfirm.open = false">✕</button>
           </div>
+
           <div class="modal-body">
-            <p class="text-muted" style="font-size:14px">
-              "<strong>{{ deleteConfirm.target?.title }}</strong>" and all its submissions will be permanently deleted.
-              This cannot be undone.
+            <p class="text-muted">
+              "<strong>{{ deleteConfirm.target?.title }}</strong>" and all submissions will be deleted.
             </p>
           </div>
+
           <div class="modal-footer">
             <button class="btn btn-ghost" @click="deleteConfirm.open = false">Cancel</button>
             <button class="btn btn-danger" @click="deleteAssignment">Delete permanently</button>
@@ -267,7 +294,6 @@
       </div>
     </Transition>
 
-    <!-- Toast -->
     <Transition name="toast">
       <div v-if="toast.visible" class="toast">{{ toast.message }}</div>
     </Transition>
@@ -283,12 +309,23 @@ const assignments = ref([])
 const submissions = ref([])
 
 const loading = ref(false)
-
 const search = ref('')
 const filterCourse = ref('')
 const filterStatus = ref('')
 const view = ref('list')
 const gradeTarget = ref('')
+
+const user = computed(() => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}')
+  } catch {
+    return {}
+  }
+})
+
+const isStudent = computed(() => {
+  return user.value?.role?.toLowerCase() === 'student'
+})
 
 const modal = reactive({
   open: false,
@@ -336,10 +373,31 @@ const currentAssignment = computed(() => {
 })
 
 const currentSubmissions = computed(() => {
-  return submissions.value.filter(
-    (s) => Number(s.assignment_id) === Number(gradeTarget.value)
-  )
+  return submissions.value.filter((s) => {
+    return (
+      Number(s.assignment_id) === Number(gradeTarget.value) ||
+      Number(s.assignment) === Number(gradeTarget.value)
+    )
+  })
 })
+
+function hasSubmitted(assignmentId) {
+  return submissions.value.some((s) => {
+    return (
+      Number(s.assignment_id) === Number(assignmentId) ||
+      Number(s.assignment) === Number(assignmentId)
+    )
+  })
+}
+
+function getSubmission(assignmentId) {
+  return submissions.value.find((s) => {
+    return (
+      Number(s.assignment_id) === Number(assignmentId) ||
+      Number(s.assignment) === Number(assignmentId)
+    )
+  }) || null
+}
 
 function authHeaders() {
   const token = localStorage.getItem('access_token')
@@ -355,16 +413,17 @@ async function fetchData() {
   loading.value = true
 
   try {
-    const [coursesRes, assignmentsRes, submissionsRes] =
-      await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/courses/', authHeaders()),
-        axios.get('http://127.0.0.1:8000/api/assignments/', authHeaders()),
-        axios.get('http://127.0.0.1:8000/api/submissions/', authHeaders()),
-      ])
+    const [coursesRes, assignmentsRes, submissionsRes] = await Promise.all([
+      axios.get('http://127.0.0.1:8000/api/courses/', authHeaders()),
+      axios.get('http://127.0.0.1:8000/api/assignments/', authHeaders()),
+      axios.get('http://127.0.0.1:8000/api/submissions/', authHeaders()),
+    ])
 
-    courses.value = coursesRes.data
-    assignments.value = assignmentsRes.data
-    submissions.value = submissionsRes.data
+    courses.value = coursesRes.data || []
+    assignments.value = assignmentsRes.data || []
+    submissions.value = submissionsRes.data || []
+
+    console.log('SUBMISSIONS:', submissions.value)
   } catch (error) {
     console.error(error)
     showToast('Failed to load assignments')
@@ -436,9 +495,7 @@ async function saveAssignment() {
   }
 
   try {
-
     if (modal.editing) {
-
       await axios.patch(
         `http://127.0.0.1:8000/api/assignments/${modal._id}/`,
         payload,
@@ -446,41 +503,18 @@ async function saveAssignment() {
       )
 
       showToast('Assignment updated ✅')
-
     } else {
-
-      const response = await axios.post(
+      await axios.post(
         'http://127.0.0.1:8000/api/assignments/',
         payload,
         authHeaders()
       )
 
-      const course = courses.value.find(
-        (c) => Number(c.id) === Number(modal.form.course)
-      )
-
-      if (course) {
-
-        if (!course.lessons) {
-          course.lessons = []
-        }
-
-        course.lessons.push({
-          id: response.data.id,
-          lesson_type: 'assignment',
-          title: response.data.title,
-          content: response.data.description || '',
-          assignment: response.data,
-        })
-      }
-
       showToast('Assignment created ✅')
     }
 
     modal.open = false
-
     await fetchData()
-
   } catch (error) {
     console.error(error)
     showToast('Failed to save assignment')
@@ -529,10 +563,7 @@ async function saveGrade(sub) {
 
 function submissionRate(a) {
   if (!a.enrolled_count) return 0
-
-  return Math.round(
-    (a.submissions_count / a.enrolled_count) * 100
-  )
+  return Math.round((a.submissions_count / a.enrolled_count) * 100)
 }
 
 function deadlineKey(deadline) {
@@ -605,4 +636,4 @@ onMounted(() => {
 })
 </script>
 
-<style src="./src/assets/AssignmentsView.css"></style>
+<style src="/src/assets/AssignmentsView.css" scoped></style>

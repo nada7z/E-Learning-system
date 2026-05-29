@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
 from courses.models import Enrollment, Course
+from notifications.utils import create_notification
 from .models import Assignment, Submission
 from .serializers import (
     AssignmentSerializer,
@@ -92,25 +93,64 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        # Student
         if hasattr(user, "student_profile"):
             return Submission.objects.filter(
                 student=user.student_profile
             ).order_by("-submitted_at")
 
-        # Teacher
         if hasattr(user, "teacher_profile"):
             return Submission.objects.filter(
                 assignment__course__teacher=user.teacher_profile
             ).order_by("-submitted_at")
 
-        # Admin
         if getattr(user, "role", None) == "admin":
             return Submission.objects.all().order_by("-submitted_at")
 
         return Submission.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(
-            student=self.request.user.student_profile
+        user = self.request.user
+
+        if not hasattr(user, "student_profile"):
+            raise PermissionDenied("Only students can submit assignments.")
+
+        assignment = serializer.validated_data["assignment"]
+
+        if Submission.objects.filter(
+            assignment=assignment,
+            student=user.student_profile
+        ).exists():
+            raise PermissionDenied("You already submitted this assignment.")
+
+        serializer.save(student=user.student_profile)
+
+        submission = serializer.save(student=user.student_profile)
+
+        teacher_user = submission.assignment.course.teacher.user
+
+        create_notification(
+            teacher_user,
+            "New assignment submission",
+            f"{user.student_profile} submitted {submission.assignment.title}."
         )
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        submission = self.get_object()
+
+        if hasattr(user, "teacher_profile"):
+            if submission.assignment.course.teacher != user.teacher_profile:
+                raise PermissionDenied(
+                    "You can only grade submissions from your own courses."
+                )
+
+            submission = serializer.save()
+
+            create_notification(
+                submission.student.user,
+                "Assignment graded",
+                f"Your assignment {submission.assignment.title} has been graded."
+            )
+            return
+
+        raise PermissionDenied("Only teachers can update submissions.")

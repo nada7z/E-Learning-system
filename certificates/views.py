@@ -1,3 +1,4 @@
+from urllib import request
 import uuid
 
 from rest_framework.views import APIView
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import permissions, status
 
 from courses.models import Course
+from notifications.utils import create_notification
 from .models import Certificate
 from .serializers import CertificateSerializer
 
@@ -62,6 +64,13 @@ class GenerateCertificateView(APIView):
                 "certificate_code": f"CERT-{uuid.uuid4().hex[:12].upper()}"
             }
         )
+
+        if created:
+            create_notification(
+                request.user,
+                "Certificate ready",
+                f"Congratulations! Your certificate for {course.title} is ready."
+            ) 
 
         serializer = CertificateSerializer(
             certificate,

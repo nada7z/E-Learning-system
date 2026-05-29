@@ -29,6 +29,7 @@ urlpatterns = [
     path("api/", include("assignments.urls")),
     path("api/", include("quizzes.urls")),
     path("api/certificates/", include("certificates.urls")),
+    path("api/", include("notifications.urls")),
 ]
 
 urlpatterns += static(

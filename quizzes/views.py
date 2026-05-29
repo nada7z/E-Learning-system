@@ -4,6 +4,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from courses.models import Enrollment, Course
 from courses.services import can_student_complete_course
+from notifications.utils import create_notification
 from .models import Quiz, QuizAttempt
 from .serializers import QuizSerializer, QuizAttemptSerializer
 
@@ -116,6 +117,20 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
             )
 
         attempt = serializer.save()
+
+        teacher_user = attempt.quiz.course.teacher.user
+
+        create_notification(
+            teacher_user,
+            "New quiz attempt",
+            f"{user.student_profile} completed {attempt.quiz.title} with {round(attempt.score)}%."
+        )
+
+        create_notification(
+            user,
+            "Quiz submitted",
+            f"You scored {round(attempt.score)}% on {attempt.quiz.title}."
+        )
 
         if not attempt.student_id:
             attempt.student = user.student_profile

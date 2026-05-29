@@ -3,7 +3,7 @@
         <div class="page-header">
             <div>
                 <h1 class="page-title">My Assignments</h1>
-                <p class="page-sub">Submit your work for your enrolled courses</p>
+                <p class="page-sub">View your assignment submissions, grades, and feedback</p>
             </div>
         </div>
 
@@ -38,9 +38,31 @@
                 </div>
 
                 <div class="quiz-card-footer">
-                    <button class="btn btn-primary" @click="openSubmit(assignment)">
-                        Submit assignment →
-                    </button>
+                    <div class="student-result-box">
+                        <template v-if="getSubmission(assignment.id)">
+                            <span class="status-badge status-green">✓ Submitted</span>
+
+                            <p class="result-line">
+                                <strong>Grade:</strong>
+                                {{ getSubmission(assignment.id).grade ?? 'Not graded yet' }}
+                                <span v-if="getSubmission(assignment.id).grade != null">
+                                    / {{ assignment.max_score }}
+                                </span>
+                            </p>
+
+                            <p class="result-line">
+                                <strong>Feedback:</strong>
+                                {{ getSubmission(assignment.id).feedback || 'No feedback yet' }}
+                            </p>
+                        </template>
+
+                        <template v-else>
+                            <span class="status-badge status-warn">Not submitted yet</span>
+                            <p class="result-line text-muted">
+                                Submit this assignment from the course detail page.
+                            </p>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
@@ -96,41 +118,41 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 const assignments = ref([])
+const submissions = ref([])
 const loading = ref(false)
-const activeAssignment = ref(null)
-const submitting = ref(false)
 const toast = ref('')
 
-const form = reactive({
-    text_answer: '',
-    file: null,
-})
-
-function authHeaders(extraHeaders = {}) {
+function authHeaders() {
     const token = localStorage.getItem('access_token')
 
     return {
         headers: {
             Authorization: `Bearer ${token}`,
-            ...extraHeaders,
         },
     }
 }
 
-async function fetchAssignments() {
+async function fetchData() {
     loading.value = true
 
     try {
-        const res = await axios.get(
-            'http://127.0.0.1:8000/api/assignments/',
-            authHeaders()
-        )
+        const [assignmentsRes, submissionsRes] = await Promise.all([
+            axios.get(
+                'http://127.0.0.1:8000/api/assignments/',
+                authHeaders()
+            ),
+            axios.get(
+                'http://127.0.0.1:8000/api/submissions/',
+                authHeaders()
+            ),
+        ])
 
-        assignments.value = res.data
+        assignments.value = assignmentsRes.data || []
+        submissions.value = submissionsRes.data || []
     } catch (error) {
         console.error(error)
         showToast('Failed to load assignments')
@@ -139,51 +161,13 @@ async function fetchAssignments() {
     }
 }
 
-function openSubmit(assignment) {
-    activeAssignment.value = assignment
-    form.text_answer = ''
-    form.file = null
-}
-
-function handleFile(event) {
-    form.file = event.target.files[0] || null
-}
-
-async function submitAssignment() {
-    if (!activeAssignment.value) return
-
-    if (!form.text_answer.trim() && !form.file) {
-        showToast('Write an answer or upload a file')
-        return
-    }
-
-    submitting.value = true
-
-    const data = new FormData()
-    data.append('assignment', activeAssignment.value.id)
-    data.append('text_answer', form.text_answer)
-
-    if (form.file) {
-        data.append('file', form.file)
-    }
-
-    try {
-        await axios.post(
-            'http://127.0.0.1:8000/api/submissions/',
-            data,
-            authHeaders({
-                'Content-Type': 'multipart/form-data',
-            })
+function getSubmission(assignmentId) {
+    return submissions.value.find((s) => {
+        return (
+            Number(s.assignment_id) === Number(assignmentId) ||
+            Number(s.assignment) === Number(assignmentId)
         )
-
-        activeAssignment.value = null
-        showToast('Assignment submitted ✅')
-    } catch (error) {
-        console.error(error)
-        showToast('Failed to submit assignment')
-    } finally {
-        submitting.value = false
-    }
+    }) || null
 }
 
 function formatDate(date) {
@@ -206,7 +190,7 @@ function showToast(message) {
     }, 3000)
 }
 
-onMounted(fetchAssignments)
+onMounted(fetchData)
 </script>
 
 <style src="./src/assets/StudentQuizzesView.css"></style>

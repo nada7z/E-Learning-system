@@ -25,15 +25,10 @@
         No notifications found.
       </div>
 
-      <div
-        v-else
-        v-for="n in filtered"
-        :key="n.id"
-        class="notif-item"
-        :class="{ unread: n.unread }"
-        @click="openNotification(n)"
-      >
-        <div style="width:44px;height:44px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+      <div v-else v-for="n in filtered" :key="n.id" class="notif-item" :class="{ unread: n.unread }"
+        @click="openNotification(n)">
+        <div
+          style="width:44px;height:44px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
           {{ n.icon || '🔔' }}
         </div>
 
@@ -95,7 +90,7 @@ async function fetchNotifications() {
   try {
     const token = localStorage.getItem('access_token')
 
-    const response = await api.get('dashboard/notifications/', {
+    const response = await api.get('notifications/', {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -111,18 +106,49 @@ async function fetchNotifications() {
   }
 }
 
-function markAllRead() {
-  notifications.value = notifications.value.map((notification) => ({
-    ...notification,
-    unread: false
-  }))
+async function markAllRead() {
+  try {
+    const token = localStorage.getItem('access_token')
 
-  emit('toast', 'All notifications marked as read', '✅')
+    await api.patch('notifications/mark_all_read/', {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    notifications.value = notifications.value.map((notification) => ({
+      ...notification,
+      unread: false,
+      is_read: true,
+    }))
+
+    window.dispatchEvent(new Event('notifications-updated'))
+
+    emit('toast', 'All notifications marked as read', '✅')
+  } catch (error) {
+    console.error(error)
+    emit('toast', 'Could not mark notifications as read', '⚠️')
+  }
 }
 
-function openNotification(notification) {
-  notification.unread = false
-  emit('toast', 'Notification opened', '🔔')
+async function openNotification(notification) {
+  try {
+    const token = localStorage.getItem('access_token')
+
+    await api.patch(`notifications/${notification.id}/mark_read/`, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    notification.unread = false
+    notification.is_read = true
+
+    emit('toast', 'Notification opened', '🔔')
+  } catch (error) {
+    console.error(error)
+    emit('toast', 'Could not update notification', '⚠️')
+  }
 }
 
 onMounted(() => {

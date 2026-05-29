@@ -1,341 +1,353 @@
 <template>
   <div class="course-detail-page">
+
+    <!-- Loading -->
     <div v-if="loading" class="state-box">
-      Loading course...
+      <div class="spinner-lg"></div>
+      <p>Loading course…</p>
     </div>
 
-    <div v-else-if="error" class="state-box error">
-      {{ error }}
+    <!-- Error -->
+    <div v-else-if="error" class="state-box state-error">
+      <span class="state-icon">⚠️</span>
+      <p>{{ error }}</p>
     </div>
 
+    <!-- Content -->
     <div v-else-if="course" class="course-layout">
+
+      <!-- ═══════════════ MAIN ═══════════════ -->
       <main class="course-main">
-        <button class="back-btn" @click="$emit('navigate', 'courses')">
-          ← Back to courses
-        </button>
 
+        <!-- Back + breadcrumb -->
+        <div class="topnav">
+          <button class="back-btn" @click="$emit('navigate', 'courses')">
+            ← Back to courses
+          </button>
+          <span class="breadcrumb">Courses / {{ course.category }}</span>
+        </div>
+
+        <!-- Course header -->
         <div class="course-header">
-          <p class="breadcrumb">Courses / {{ course.category }}</p>
+          <h1 class="course-title">{{ course.title }}</h1>
+          <p class="course-description">{{ course.description }}</p>
 
-          <h1>{{ course.title }}</h1>
-
-          <p class="description">
-            {{ course.description }}
-          </p>
-
-          <div class="course-meta">
-            <span>{{ course.level }}</span>
-            <span>{{ course.language }}</span>
-            <span>{{ course.duration_hours }} hours</span>
-            <span>{{ courseItems.length }} items</span>
+          <div class="course-meta-pills">
+            <span class="meta-pill">{{ course.level }}</span>
+            <span class="meta-pill">{{ course.language }}</span>
+            <span class="meta-pill">⏱ {{ course.duration_hours }}h</span>
+            <span class="meta-pill">📖 {{ courseItems.length }} items</span>
           </div>
 
-          <div v-if="isStudent" class="course-progress-box">
-            <div class="course-progress-top">
-              <span>Course progress</span>
-              <strong>{{ courseProgress }}%</strong>
+          <!-- Student progress -->
+          <div v-if="isStudent" class="progress-box">
+            <div class="progress-top">
+              <span class="progress-label">Your progress</span>
+              <strong class="progress-pct">{{ courseProgress }}%</strong>
             </div>
-
-            <div class="progress-bar">
+            <div class="progress-track">
               <div class="progress-fill" :style="{ width: courseProgress + '%' }"></div>
             </div>
           </div>
         </div>
 
-        <div v-if="
-          selectedLesson?.lesson_type === 'video' &&
-          (
-            selectedLesson?.video_file_url ||
-            selectedLesson?.video_file ||
-            selectedLesson?.video_url
-          )
-        " class="video-card">
+        <!-- Video player -->
+        <div v-if="selectedLesson?.lesson_type === 'video'" class="video-wrap">
           <video v-if="selectedLesson.video_file_url || selectedLesson.video_file" class="lesson-video" controls
             :src="selectedLesson.video_file_url || selectedLesson.video_file"></video>
 
-          <iframe v-else-if="selectedLesson.video_url" class="lesson-video"
-            :src="formatVideoUrl(selectedLesson.video_url)" allowfullscreen></iframe>
+          <iframe v-else-if="selectedLesson.content || selectedLesson.video_url" class="lesson-video"
+            :src="formatVideoUrl(selectedLesson.content || selectedLesson.video_url)" allowfullscreen></iframe>
         </div>
 
-        <div class="lesson-content-card">
-          <div class="tabs">
+        <!-- Tabs + content card -->
+        <div class="content-card">
+
+          <!-- Tab bar -->
+          <div class="tab-bar">
             <button v-for="(tab, index) in tabs" :key="tab" class="tab-btn" :class="{ active: activeTab === index }"
-              @click="activeTab = index">
-              {{ tab }}
-            </button>
+              @click="activeTab = index">{{ tab }}</button>
           </div>
 
-          <section v-if="activeTab === 0">
-            <div class="lesson-title-line">
-              <h2>{{ selectedLesson?.title || course.title }}</h2>
+          <!-- ── Overview tab ── -->
+          <section v-if="activeTab === 0" class="tab-section">
 
-              <button v-if="
-                isStudent &&
-                selectedLesson &&
-                selectedLesson.lesson_type !== 'quiz' &&
-                selectedLesson.lesson_type !== 'assignment'
-              " class="lesson-complete-btn big" :class="{ completed: isCompleted(selectedLesson) }"
+            <div class="lesson-heading-row">
+              <h2 class="lesson-heading">{{ selectedLesson?.title || course.title }}</h2>
+              <button
+                v-if="isStudent && selectedLesson && selectedLesson.lesson_type !== 'quiz' && selectedLesson.lesson_type !== 'assignment'"
+                class="complete-icon-btn" :class="{ completed: isCompleted(selectedLesson) }"
                 @click="markCompleted(selectedLesson)">
-                <CheckIcon :size="20" />
+                <CheckIcon :size="18" />
               </button>
             </div>
 
-            <p class="lesson-text">
+            <p v-if="selectedLesson?.lesson_type !== 'video'" class="lesson-body">
               {{ selectedLesson?.content || selectedLesson?.description || 'No content yet.' }}
             </p>
 
-            <button v-if="
-              isStudent &&
-              selectedLesson &&
-              selectedLesson.lesson_type !== 'quiz' &&
-              selectedLesson.lesson_type !== 'assignment'
-            " class="primary-action" :disabled="isCompleted(selectedLesson)" @click="markCompleted(selectedLesson)">
-              {{ isCompleted(selectedLesson) ? 'Completed' : 'Mark as completed' }}
+            <button
+              v-if="isStudent && selectedLesson && selectedLesson.lesson_type !== 'quiz' && selectedLesson.lesson_type !== 'assignment'"
+              class="btn btn-primary" :disabled="isCompleted(selectedLesson)" @click="markCompleted(selectedLesson)">
+              {{ isCompleted(selectedLesson) ? '✓ Completed' : 'Mark as completed' }}
             </button>
 
-            <div v-if="selectedLesson?.lesson_type === 'assignment'" class="activity-box">
-              <h3>Submit assignment</h3>
+            <!-- Assignment block -->
+            <div v-if="selectedLesson?.lesson_type === 'assignment'" class="activity-card">
+              <div class="activity-header">
+                <span class="activity-type-badge assignment-badge">📋 Assignment</span>
+                <div class="activity-meta">
+                  <span v-if="selectedLesson.assignment?.deadline">
+                    ⏰ Due {{ formatDate(selectedLesson.assignment.deadline) }}
+                  </span>
+                  <span>🏆 {{ selectedLesson.assignment?.max_score || 100 }} pts max</span>
+                </div>
+              </div>
 
-              <p>
+              <p class="activity-desc">
                 {{ selectedLesson.assignment?.description || selectedLesson.content }}
               </p>
 
-              <p v-if="selectedLesson.assignment?.deadline">
-                <strong>Deadline:</strong>
-                {{ formatDate(selectedLesson.assignment.deadline) }}
-              </p>
+              <div class="field">
+                <label class="field-label">Your answer</label>
+                <textarea v-model="assignmentForm.text_answer" class="field-textarea" rows="5"
+                  placeholder="Write your answer here…"></textarea>
+              </div>
 
-              <p>
-                <strong>Max score:</strong>
-                {{ selectedLesson.assignment?.max_score || 100 }}
-              </p>
-
-              <textarea v-model="assignmentForm.text_answer" class="answer-box"
-                placeholder="Write your answer..."></textarea>
-
-              <input class="file-input" type="file" @change="handleAssignmentFile" />
-
-              <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)"
-                @click="submitAssignment">
-                {{ isCompleted(selectedLesson) ? 'Submitted' : submitting ? 'Submitting...' : 'Submit assignment' }}
-              </button>
-            </div>
-
-            <div v-if="selectedLesson?.lesson_type === 'quiz'" class="activity-box">
-              <h3>Answer quiz</h3>
-
-              <p>
-                {{ selectedLesson.quiz?.description || selectedLesson.content }}
-              </p>
-
-              <p>
-                <strong>Passing score:</strong>
-                {{ selectedLesson.quiz?.passing_score || 50 }}%
-              </p>
-
-              <div v-for="(question, qIndex) in selectedLesson.quiz?.questions || []" :key="question.id"
-                class="question-card">
-                <h3>Question {{ qIndex + 1 }}</h3>
-                <p>{{ question.text }}</p>
-
-                <textarea v-if="question.question_type === 'short_answer'"
-                  v-model="quizAnswers[question.id].text_answer" class="answer-box"
-                  placeholder="Write your answer..."></textarea>
-
-                <label v-else v-for="option in question.options || []" :key="option.id" class="option" :class="{
-                  selected: quizAnswers[question.id]?.selected_option === option.id
-                }">
-                  <input type="radio" :name="`question-${question.id}`" :value="option.id"
-                    v-model="quizAnswers[question.id].selected_option" />
-                  {{ option.text }}
+              <div class="field">
+                <label class="field-label">Upload file <span class="optional">(optional)</span></label>
+                <label class="file-drop">
+                  <input class="file-input-hidden" type="file" @change="handleAssignmentFile" />
+                  <span class="file-drop-inner">📂 Click to browse or drag a file here</span>
                 </label>
               </div>
 
-              <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)" @click="submitQuiz">
-                {{ isCompleted(selectedLesson) ? 'Quiz submitted' : submitting ? 'Submitting...' : 'Submit quiz' }}
+              <button class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)"
+                @click="submitAssignment">
+                <span v-if="submitting" class="spinner-sm"></span>
+                {{ isCompleted(selectedLesson) ? '✓ Submitted' : submitting ? 'Submitting…' : 'Submit assignment' }}
+              </button>
+            </div>
+
+            <!-- Quiz block -->
+            <div v-if="selectedLesson?.lesson_type === 'quiz'" class="activity-card">
+              <div class="activity-header">
+                <span class="activity-type-badge quiz-badge">📝 Quiz</span>
+                <div class="activity-meta">
+                  <span>🏆 Pass {{ selectedLesson.quiz?.passing_score || 50 }}%</span>
+                </div>
+              </div>
+
+              <p class="activity-desc">
+                {{ selectedLesson.quiz?.description || selectedLesson.content }}
+              </p>
+
+              <div v-for="(question, qIndex) in selectedLesson.quiz?.questions || []" :key="question.id"
+                class="question-block">
+                <div class="q-meta-row">
+                  <span class="q-num">Q{{ qIndex + 1 }}</span>
+                </div>
+                <p class="q-text">{{ question.text }}</p>
+
+                <textarea v-if="question.question_type === 'short_answer'"
+                  v-model="quizAnswers[question.id].text_answer" class="field-textarea" rows="3"
+                  placeholder="Write your answer…"></textarea>
+
+                <div v-else class="options-list">
+                  <label v-for="option in question.options || []" :key="option.id" class="option-label"
+                    :class="{ selected: quizAnswers[question.id]?.selected_option === option.id }">
+                    <input type="radio" :name="`question-${question.id}`" :value="option.id"
+                      v-model="quizAnswers[question.id].selected_option" />
+                    <span>{{ option.text }}</span>
+                  </label>
+                </div>
+              </div>
+
+              <button class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)" @click="submitQuiz">
+                <span v-if="submitting" class="spinner-sm"></span>
+                {{ isCompleted(selectedLesson) ? '✓ Quiz submitted' : submitting ? 'Submitting…' : 'Submit quiz' }}
               </button>
             </div>
           </section>
 
-          <section v-if="activeTab === 1">
-            <h2>Resources</h2>
-            <p class="lesson-text">Resources are not added yet.</p>
+          <!-- ── Resources tab ── -->
+          <section v-if="activeTab === 1" class="tab-section">
+            <h2 class="section-heading">Resources</h2>
+            <p class="empty-text">No resources have been added yet.</p>
           </section>
 
-          <section v-if="activeTab === 2">
-            <div class="discussion-card">
-              <h2>Course discussion</h2>
-              <p class="lesson-text">
-                Ask questions, discuss lessons, and get answers from the teacher.
-              </p>
+          <!-- ── Discussion tab ── -->
+          <section v-if="activeTab === 2" class="tab-section">
+            <h2 class="section-heading">Discussion</h2>
+            <p class="section-sub">Ask questions and get answers from your teacher and classmates.</p>
 
-              <div class="discussion-form">
-                <textarea v-model="discussionText" class="discussion-input" placeholder="Write your message..."
-                  rows="3"></textarea>
-
-                <button class="primary-action" :disabled="discussionLoading || !discussionText.trim()"
-                  @click="submitDiscussion">
-                  {{ discussionLoading ? 'Posting...' : 'Post message' }}
-                </button>
-              </div>
-
-              <div v-if="discussionMessages.length" class="discussion-list">
-                <div v-for="message in discussionMessages" :key="message.id" class="discussion-message">
-                  <div class="discussion-header">
-                    <strong>{{ message.author_name }}</strong>
-
-                    <span v-if="message.is_teacher" class="teacher-badge">
-                      Teacher
-                    </span>
-                  </div>
-
-                  <p>{{ message.message }}</p>
-
-                  <small>
-                    {{ new Date(message.created_at).toLocaleString() }}
-                  </small>
-                </div>
-              </div>
-
-              <p v-else class="lesson-text">
-                No messages yet. Start the discussion.
-              </p>
-            </div>
-          </section>
-
-          <section v-if="activeTab === 3">
-            <div class="review-card">
-              <h2>Course reviews</h2>
-
-              <div v-if="canReviewCourse" class="review-form">
-                <h3>
-                  {{ myReview ? 'Update your review' : 'Leave a review' }}
-                </h3>
-
-                <div class="stars">
-                  <button v-for="star in 5" :key="star" type="button" :class="{ active: star <= reviewForm.rating }"
-                    @click="reviewForm.rating = star">
-                    ★
+            <!-- Compose -->
+            <div class="compose-box">
+              <div class="compose-avatar">You</div>
+              <div class="compose-right">
+                <textarea v-model="discussionText" class="compose-textarea"
+                  placeholder="Ask a question or share something with the class…" rows="3"></textarea>
+                <div class="compose-footer">
+                  <button class="btn btn-primary btn-sm" :disabled="discussionLoading || !discussionText.trim()"
+                    @click="submitDiscussion">
+                    <span v-if="discussionLoading" class="spinner-sm"></span>
+                    {{ discussionLoading ? 'Posting…' : 'Post message' }}
                   </button>
                 </div>
-
-                <textarea v-model="reviewForm.review" class="answer-box" placeholder="Write your review..."></textarea>
-
-                <button class="primary-action" @click="submitReview">
-                  {{ myReview ? 'Update review' : 'Submit review' }}
-                </button>
               </div>
+            </div>
 
-              <p v-else-if="isStudent" class="lesson-text">
-                Complete and pass this course to leave a review.
-              </p>
-
-              <div v-if="reviews.length" class="reviews-list">
-                <div v-for="review in reviews" :key="review.id" class="single-review">
-                  <strong>{{ review.student_name }}</strong>
-
-                  <span>
-                    {{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}
-                  </span>
-
-                  <p>{{ review.review }}</p>
+            <!-- Messages -->
+            <div v-if="discussionMessages.length" class="discussion-feed">
+              <div v-for="message in discussionMessages" :key="message.id" class="discussion-msg">
+                <div class="msg-avatar" :class="{ 'avatar-teacher': message.is_teacher }">
+                  {{ message.author_name?.charAt(0) ?? '?' }}
+                </div>
+                <div class="msg-body">
+                  <div class="msg-meta">
+                    <span class="msg-author">{{ message.author_name }}</span>
+                    <span v-if="message.is_teacher" class="teacher-chip">Teacher</span>
+                    <span class="msg-time">{{ new Date(message.created_at).toLocaleString() }}</span>
+                  </div>
+                  <p class="msg-text">{{ message.message }}</p>
                 </div>
               </div>
+            </div>
 
-              <p v-else class="lesson-text">
-                No reviews yet.
-              </p>
+            <div v-else class="empty-feed">
+              <span class="empty-feed-icon">💬</span>
+              <p>No messages yet. Start the discussion!</p>
             </div>
           </section>
-        </div>
+
+          <!-- ── Reviews tab ── -->
+          <section v-if="activeTab === 3" class="tab-section">
+            <h2 class="section-heading">Reviews</h2>
+            <p class="section-sub">What students are saying about this course.</p>
+
+            <!-- Review form -->
+            <div v-if="canReviewCourse" class="review-form-card">
+              <h3 class="review-form-title">{{ myReview ? 'Update your review' : 'Leave a review' }}</h3>
+              <div class="star-picker">
+                <button v-for="star in 5" :key="star" type="button" class="star-btn"
+                  :class="{ lit: star <= reviewForm.rating }" @click="reviewForm.rating = star">★</button>
+              </div>
+              <textarea v-model="reviewForm.review" class="field-textarea" rows="4"
+                placeholder="Share your experience with this course…"></textarea>
+              <button class="btn btn-primary btn-sm" @click="submitReview">
+                {{ myReview ? 'Update review' : 'Submit review' }}
+              </button>
+            </div>
+
+            <p v-else-if="isStudent" class="empty-text">
+              Complete this course to leave a review.
+            </p>
+
+            <!-- Reviews list -->
+            <div v-if="reviews.length" class="reviews-list">
+              <div v-for="review in reviews" :key="review.id" class="review-card">
+                <div class="review-top">
+                  <div class="review-avatar">
+                    {{ review.student_name?.charAt(0) ?? '?' }}
+                  </div>
+                  <div class="review-author-info">
+                    <span class="review-author">{{ review.student_name }}</span>
+                    <span class="review-stars">
+                      <span v-for="s in 5" :key="s" class="review-star" :class="{ lit: s <= review.rating }">★</span>
+                    </span>
+                  </div>
+                </div>
+                <p class="review-text">{{ review.review }}</p>
+              </div>
+            </div>
+
+            <div v-else class="empty-feed">
+              <span class="empty-feed-icon">⭐</span>
+              <p>No reviews yet. Be the first!</p>
+            </div>
+          </section>
+
+        </div><!-- /content-card -->
       </main>
 
+      <!-- ═══════════════ SIDEBAR ═══════════════ -->
       <aside class="course-sidebar">
-        <div class="sidebar-card">
-          <h3>Course content</h3>
 
-          <p class="small-muted">
-            {{ courseItems.length }} items
-          </p>
+        <!-- Lesson list -->
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <h3 class="sidebar-card-title">Course content</h3>
+            <span class="sidebar-card-meta">{{ courseItems.length }} items</span>
+          </div>
 
           <div class="lesson-list">
-            <div v-for="(lesson, index) in courseItems" :key="lesson.uid" class="lesson-row" :class="{
-              active: selectedLesson?.uid === lesson.uid,
-              completed: isCompleted(lesson)
-            }" @click="selectLesson(lesson)">
-              <button v-if="isStudent" class="lesson-complete-btn" :class="{ completed: isCompleted(lesson) }"
-                @click.stop="markCompleted(lesson)">
-                <CheckIcon :size="20" />
-              </button>
-
-              <div v-else class="lesson-number">
-                {{ index + 1 }}
+            <div v-for="(lesson, index) in courseItems" :key="lesson.uid" class="lesson-row"
+              :class="{ active: selectedLesson?.uid === lesson.uid, completed: isCompleted(lesson) }"
+              @click="selectLesson(lesson)">
+              <div class="lesson-num"
+                :class="{ 'num-done': isCompleted(lesson), 'num-active': selectedLesson?.uid === lesson.uid }">
+                <span v-if="isStudent">
+                  <CheckIcon v-if="isCompleted(lesson)" :size="13" />
+                  <span v-else>{{ index + 1 }}</span>
+                </span>
+                <span v-else>{{ index + 1 }}</span>
               </div>
-
               <div class="lesson-info">
-                <strong>{{ lesson.title }}</strong>
-                <span>
-                  {{ lessonTypeIcon(lesson.lesson_type) }}
-                  {{ lessonTypeLabel(lesson.lesson_type) }}
+                <span class="lesson-info-title">{{ lesson.title }}</span>
+                <span class="lesson-info-type">
+                  {{ lessonTypeIcon(lesson.lesson_type) }} {{ lessonTypeLabel(lesson.lesson_type) }}
                 </span>
               </div>
+              <span v-if="selectedLesson?.uid === lesson.uid" class="active-pip"></span>
             </div>
           </div>
         </div>
 
+        <!-- Course info -->
         <div class="sidebar-card">
-          <h3>Course info</h3>
-
-          <p>
-            <strong>Teacher:</strong>
-            {{ course.teacher_name || 'Teacher' }}
-          </p>
-
-          <p>
-            <strong>Category:</strong>
-            {{ course.category }}
-          </p>
-
-          <p>
-            <strong>Certificate:</strong>
-            {{ course.has_certificate ? 'Yes' : 'No' }}
-          </p>
-
-          <p>
-            <strong>Price:</strong>
-            {{ course.is_free ? 'Free' : course.price }}
-          </p>
+          <div class="sidebar-card-header">
+            <h3 class="sidebar-card-title">Course info</h3>
+          </div>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-key">Teacher</span>
+              <span class="info-val">{{ course.teacher_name || 'Teacher' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">Category</span>
+              <span class="info-val">{{ course.category }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">Certificate</span>
+              <span class="info-val">{{ course.has_certificate ? '✓ Yes' : 'No' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">Price</span>
+              <span class="info-val">{{ course.is_free ? 'Free' : course.price }}</span>
+            </div>
+          </div>
         </div>
+
       </aside>
 
-      <div v-if="toast" class="toast">
-        {{ toast }}
-      </div>
-    </div>
-  </div>
+      <!-- Toast -->
+      <div v-if="toast" class="toast">{{ toast }}</div>
 
+    </div><!-- /course-layout -->
+  </div><!-- /course-detail-page -->
+
+  <!-- Completion modal -->
   <Transition name="modal">
     <div v-if="showCompletionModal" class="completion-backdrop">
       <div class="completion-modal">
-        <div class="completion-icon">
-          🎉
-        </div>
-
-        <h1>Course Completed!</h1>
-
-        <p>
-          Congratulations! You successfully completed this course
-          and earned your certificate.
+        <div class="completion-emoji">🎉</div>
+        <h2 class="completion-title">Course Completed!</h2>
+        <p class="completion-sub">
+          Congratulations! You've successfully completed this course and earned your certificate.
         </p>
-
         <div class="completion-actions">
-          <button class="secondary-btn" @click="showCompletionModal = false">
-            Stay here
-          </button>
-
-          <button class="primary-btn" @click="$router.push({ name: 'Certificates' })">
-            View Certificate
-          </button>
+          <button class="btn btn-ghost" @click="showCompletionModal = false">Stay here</button>
+          <button class="btn btn-primary" @click="$router.push({ name: 'Certificates' })">View Certificate →</button>
         </div>
       </div>
     </div>
@@ -505,6 +517,8 @@ async function markCompleted(item) {
 }
 
 function selectLesson(lesson) {
+  console.log('SELECTED LESSON:', lesson)
+
   selectedLesson.value = lesson
   activeTab.value = 0
 
@@ -823,6 +837,16 @@ async function checkCertificateOnLoad() {
   }
 }
 
+function getYouTubeEmbedUrl(url) {
+  if (!url) return ''
+
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/
+  )
+
+  return match ? `https://www.youtube.com/embed/${match[1]}` : ''
+}
+
 onMounted(async () => {
   await fetchCourse()
   await fetchReviews()
@@ -831,555 +855,4 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
-.course-detail-page {
-  padding: 28px;
-  background: #f7f6f2;
-  min-height: 100vh;
-}
-
-.state-box {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  font-weight: 600;
-}
-
-.state-box.error {
-  color: #dc2626;
-}
-
-.course-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
-}
-
-.course-main {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.back-btn {
-  width: fit-content;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.course-header {
-  background: white;
-  padding: 28px;
-  border-radius: 20px;
-  border: 1px solid #e5e7eb;
-}
-
-.breadcrumb {
-  color: #6b7280;
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-
-.course-header h1 {
-  font-size: 34px;
-  margin: 0 0 12px;
-}
-
-.description {
-  color: #4b5563;
-  line-height: 1.6;
-  max-width: 850px;
-}
-
-.course-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.course-meta span {
-  background: #eef2ff;
-  color: #4338ca;
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.course-progress-box {
-  margin-top: 22px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.course-progress-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: #4b5563;
-}
-
-.course-progress-top strong {
-  color: #111827;
-}
-
-.progress-bar {
-  height: 9px;
-  background: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #4f46e5;
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.video-card {
-  background: #111827;
-  border-radius: 20px;
-  min-height: 360px;
-  overflow: hidden;
-  display: flex;
-}
-
-.lesson-video {
-  width: 100%;
-  height: 360px;
-  border: none;
-  object-fit: cover;
-}
-
-.lesson-content-card {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  border: 1px solid #e5e7eb;
-}
-
-.tabs {
-  display: flex;
-  gap: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 22px;
-  padding-bottom: 12px;
-}
-
-.tab-btn {
-  border: none;
-  background: transparent;
-  padding: 9px 12px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.lesson-title-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.lesson-content-card h2 {
-  margin: 0 0 14px;
-}
-
-.lesson-text {
-  color: #4b5563;
-  line-height: 1.8;
-  white-space: pre-line;
-}
-
-.activity-box,
-.question-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 16px;
-  margin-top: 18px;
-}
-
-.option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  margin-top: 8px;
-  cursor: pointer;
-}
-
-.option.selected {
-  border-color: #4f46e5;
-  background: #eef2ff;
-  color: #4338ca;
-  font-weight: 700;
-}
-
-.answer-box {
-  width: 100%;
-  min-height: 120px;
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  resize: vertical;
-  font-family: inherit;
-}
-
-.file-input {
-  display: block;
-  margin-top: 12px;
-  padding: 10px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-}
-
-.primary-action {
-  margin-top: 16px;
-  border: none;
-  background: #4f46e5;
-  color: white;
-  padding: 11px 18px;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.primary-action:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.course-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.sidebar-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 20px;
-}
-
-.sidebar-card h3 {
-  margin-top: 0;
-}
-
-.small-muted {
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.lesson-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.lesson-row {
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  background: white;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 14px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.lesson-row.active {
-  border-color: #4f46e5;
-  background: #eef2ff;
-}
-
-.lesson-row.completed {
-  border-color: #10b981;
-}
-
-.lesson-number,
-.lesson-complete-btn {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-}
-
-.lesson-number {
-  background: #e5e7eb;
-  color: #111827;
-}
-
-.lesson-complete-btn {
-  border: 2px solid #4f46e5;
-  background: white;
-  color: #4f46e5;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.lesson-complete-btn:hover {
-  transform: scale(1.06);
-}
-
-.lesson-complete-btn.completed {
-  background: #10b981;
-  border-color: #10b981;
-  color: white;
-}
-
-.lesson-complete-btn.big {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-}
-
-.lesson-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.lesson-info span {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.toast {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  background: #111827;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-weight: 600;
-  z-index: 100;
-}
-
-@media (max-width: 1000px) {
-  .course-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.completion-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(6px);
-}
-
-.completion-modal {
-  width: min(520px, 92vw);
-  background: white;
-  border-radius: 28px;
-  padding: 42px;
-  text-align: center;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
-}
-
-.completion-icon {
-  width: 92px;
-  height: 92px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  background: linear-gradient(135deg,
-      #4f46e5,
-      #7c3aed);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 42px;
-  color: white;
-}
-
-.completion-modal h1 {
-  margin: 0 0 12px;
-  font-size: 34px;
-}
-
-.completion-modal p {
-  color: #6b7280;
-  line-height: 1.7;
-  margin-bottom: 30px;
-}
-
-.completion-actions {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-
-.primary-btn,
-.secondary-btn {
-  border: none;
-  border-radius: 14px;
-  padding: 13px 22px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.primary-btn {
-  background: #4f46e5;
-  color: white;
-}
-
-.secondary-btn {
-  background: #eef2ff;
-  color: #4338ca;
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: 0.25s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-  transform: scale(0.96);
-}
-
-.review-card {
-  background: white;
-  padding: 24px;
-  border-radius: 20px;
-  border: 1px solid #e5e7eb;
-}
-
-.review-form {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 18px;
-}
-
-.stars {
-  display: flex;
-  gap: 6px;
-  margin: 12px 0;
-}
-
-.stars button {
-  border: none;
-  background: transparent;
-  font-size: 30px;
-  color: #d1d5db;
-  cursor: pointer;
-}
-
-.stars button.active {
-  color: #f59e0b;
-}
-
-.reviews-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.single-review {
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px;
-  background: #f9fafb;
-}
-
-.single-review span {
-  display: block;
-  color: #f59e0b;
-  margin: 6px 0;
-}
-
-.discussion-card {
-  background: white;
-  border-radius: 18px;
-  padding: 22px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-}
-
-.discussion-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 18px 0;
-}
-
-.discussion-input {
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px;
-  resize: vertical;
-  font-family: inherit;
-}
-
-.discussion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.discussion-message {
-  border: 1px solid #eef2ff;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.discussion-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.teacher-badge {
-  background: #3d5afe;
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-.discussion-message p {
-  margin: 0 0 8px;
-  color: #334155;
-}
-
-.discussion-message small {
-  color: #64748b;
-}
-</style>
+<style src="/src/assets/CourseDetailView.css" scoped></style>

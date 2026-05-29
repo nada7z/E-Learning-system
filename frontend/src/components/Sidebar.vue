@@ -18,8 +18,13 @@
       </template>
       <div class="nav-section">
         <div class="nav-label">General</div>
-        <div class="nav-item" :class="{ active: page === 'notifications' }" @click="$emit('navigate', 'notifications')">
-          <Bell class="nav-icon" />Notifications <span class="nav-badge" v-if="unreadCount">{{ unreadCount }}</span>
+        <div class="nav-item notification-link" :class="{ active: page === 'notifications' }"
+          @click="$emit('navigate', 'notifications')">
+          <Bell class="nav-icon" />
+
+          <span class="notification-dot" v-if="unreadCount > 0"></span>
+
+          Notifications
         </div>
         <div class="nav-item" @click="$emit('logout')">
           <LogOut class="nav-icon" />Sign Out
@@ -44,7 +49,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import NavSection from './NavSection.vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
@@ -66,6 +71,8 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+
+const unreadCount = ref(0)
 
 function goTo(path) {
   router.push(path)
@@ -247,4 +254,48 @@ const avatarStyle = computed(() => ({
         ? '#00897B'
         : '#7C3AED',
 }))
+
+async function fetchUnreadCount() {
+  try {
+    const token = localStorage.getItem('access_token')
+
+    const res = await fetch('http://127.0.0.1:8000/api/notifications/', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    const data = await res.json()
+
+    unreadCount.value = data.filter((n) => !n.is_read).length
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+onMounted(() => {
+  fetchUnreadCount()
+  window.addEventListener('notifications-updated', fetchUnreadCount)
+})
+
 </script>
+
+<style scoped>
+.notification-dot {
+  position: absolute;
+  top: 8px;
+  left: 18px;
+
+  width: 10px;
+  height: 10px;
+
+  background: #ef4444;
+  border-radius: 50%;
+
+  border: 2px solid white;
+}
+
+.notification-link {
+  position: relative;
+}
+</style>

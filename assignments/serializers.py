@@ -109,6 +109,21 @@ class SubmissionSerializer(serializers.ModelSerializer):
         return "#3D5AFE"
 
     def validate(self, data):
+        if self.instance is not None:
+            return data
+
+        request = self.context.get("request")
+        assignment = data.get("assignment")
+
+        if request and hasattr(request.user, "student_profile"):
+            if Submission.objects.filter(
+                assignment=assignment,
+                student=request.user.student_profile
+            ).exists():
+                raise serializers.ValidationError(
+                    "You already submitted this assignment."
+                )
+
         text_answer = data.get("text_answer", "")
         file = data.get("file", None)
 
