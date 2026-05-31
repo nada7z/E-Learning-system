@@ -361,6 +361,7 @@ class CourseListSerializer(serializers.ModelSerializer):
             "enrolled_count",
             "is_free",
             "price",
+            "is_published",
             "is_enrolled",
         ]
 

@@ -120,29 +120,40 @@ const fetchDashboard = async () => {
     }
 
     const data = await response.json()
-
+    console.log('DASHBOARD COURSES:', data.courses)
+    console.log(
+      data.courses.map(c => ({
+        title: c.title,
+        is_published: c.is_published,
+        status: c.status,
+      }))
+    )
     stats.value = {
       ...stats.value,
       ...(data.stats || data),
     }
 
-    courses.value = (data.courses || []).map((course) => ({
-      ...course,
+    courses.value = (data.courses || []).map((course) => {
+      const published =
+        course.is_published === true ||
+        course.is_published === 'true' ||
+        course.is_published === 1 ||
+        course.is_published === '1'
 
-      lessons_count: course.lessons_count ?? course.lessons?.length ?? 0,
+      return {
+        ...course,
 
-      duration_hours: course.duration_hours ?? course.duration ?? 0,
+        lessons_count: course.lessons_count ?? course.lessons?.length ?? 0,
+        duration_hours: course.duration_hours ?? course.duration ?? 0,
+        level: course.level || 'Beginner',
+        category: course.category || 'Uncategorized',
+        teacher_name: course.teacher_name || 'Teacher',
+        price: course.is_free ? 0 : Number(course.price ?? 0),
 
-      level: course.level || 'Beginner',
-
-      category: course.category || 'Uncategorized',
-
-      teacher_name: course.teacher_name || 'Teacher',
-
-      price: course.is_free ? 0 : Number(course.price ?? 0),
-
-      status: course.is_published ? 'Published' : 'Draft',
-    }))
+        is_published: published,
+        status: published ? 'Published' : 'Draft',
+      }
+    })
 
     enrollmentTrends.value = data.enrollment_trends || {
       labels: [],

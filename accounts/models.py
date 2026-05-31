@@ -15,6 +15,20 @@ class User(AbstractUser):
         choices=ROLE_CHOICES,
         default='student'
     )
+    
+    ACCOUNT_STATUS_CHOICES = (
+        ("normal", "Normal"),
+        ("suspended", "Suspended"),
+        ("banned", "Banned"),
+    )
+
+    account_status = models.CharField(
+        max_length=20,
+        choices=ACCOUNT_STATUS_CHOICES,
+        default="normal"
+    )
+
+    suspended_until = models.DateTimeField(blank=True, null=True)
 
     email = models.EmailField(_('email address'), unique=True)   # Make email unique
 

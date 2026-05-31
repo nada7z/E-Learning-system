@@ -507,9 +507,11 @@ async function markCompleted(item) {
   console.log('COURSE PROGRESS:', progress)
 
   if (progress >= 100) {
-    await generateCertificate()
-    showCompletionModal.value = true
-    showToast('🎉 Congratulations! Certificate unlocked.')
+    if (isStudent.value) {
+      await generateCertificate()
+      showCompletionModal.value = true
+      showToast('🎉 Congratulations! Certificate unlocked.')
+    }
     return
   }
 
@@ -816,6 +818,8 @@ function canEarnCertificate() {
 }
 
 async function generateCertificate() {
+  if (!isStudent.value) return
+
   try {
     await axios.post(
       'http://127.0.0.1:8000/api/certificates/generate/',
@@ -831,6 +835,8 @@ async function generateCertificate() {
 }
 
 async function checkCertificateOnLoad() {
+  if (!isStudent.value) return
+
   if (courseProgress.value >= 100) {
     console.log('COURSE ALREADY 100%, GENERATING CERTIFICATE...')
     await generateCertificate()

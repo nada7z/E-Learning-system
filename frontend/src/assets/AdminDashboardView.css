@@ -1,0 +1,154 @@
+.users-card {
+    padding: 20px;
+    border-radius: 18px;
+}
+
+.users-table-wrap {
+    border: 1px solid #e5ded5;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 16px;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table th {
+    text-align: left;
+    padding: 14px 16px;
+    color: #9a968f;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+}
+
+.users-table td {
+    padding: 14px 16px;
+    border-top: 1px solid #e5ded5;
+    vertical-align: middle;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #e9ddff;
+    color: #6d4cff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.user-cell strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.user-cell p {
+    margin: 2px 0 0;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.role-badge,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.role-badge.student {
+    background: #eef2ff;
+    color: #3d5afe;
+}
+
+.role-badge.teacher {
+    background: #e0f2f1;
+    color: #00897b;
+}
+
+.role-badge.admin {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.status-badge {
+    background: #dff5f2;
+    color: #00897b;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-btn {
+    padding: 7px 14px;
+    border-radius: 10px;
+    border: 1px solid #e5ded5;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.edit-btn:hover {
+    background: #f8f8f8;
+}
+
+.suspend-btn {
+    padding: 7px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ffe8ee;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.suspend-btn:hover {
+    background: #ffd9e3;
+}
+
+.empty-row {
+    text-align: center;
+    color: #6b7280;
+    padding: 24px !important;
+}
+
+@media (max-width: 1200px) {
+    .users-table {
+        font-size: 13px;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 12px;
+    }
+
+    .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+    }
+}

@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Student, Teacher
+from django.utils import timezone
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
 User = get_user_model()
 
@@ -52,12 +54,30 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         user = self.user
-        data['user'] = {
-            'id': user.id,
-            'email': user.email,
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'role': user.role,
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+        now = timezone.now()
+
+        if user.account_status == "banned":
+            raise AuthenticationFailed("Your account is banned.")
+
+        if user.account_status == "suspended":
+            if user.suspended_until and user.suspended_until > now:
+                raise AuthenticationFailed(
+                    f"Your account is suspended until {user.suspended_until.strftime('%Y-%m-%d')}."
+                )
+
+            user.account_status = "normal"
+            user.suspended_until = None
+            user.save(update_fields=["account_status", "suspended_until"])
+
+        data["user"] = {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role,
         }
+
         return data

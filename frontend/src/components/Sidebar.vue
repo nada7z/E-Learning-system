@@ -189,7 +189,7 @@ const adminMain = [
   },
 
   {
-    page: 'courses',
+    page: 'admin-courses',
     icon: BookOpen,
     label: 'Courses'
   },
@@ -197,13 +197,9 @@ const adminMain = [
 
 const adminAnalytics = [
   {
+    page: 'reports',
     icon: BarChart3,
     label: 'Reports'
-  },
-
-  {
-    icon: Settings,
-    label: 'Settings'
   },
 ]
 

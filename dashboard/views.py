@@ -2,12 +2,17 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Avg, Count
+from django.db.models import Sum
+from courses.models import Payment
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from datetime import timedelta
+from django.utils import timezone
+from accounts.models import User
+from courses.models import Course, Enrollment
 from accounts.models import User
 from assignments.models import Assignment, Submission
 from courses.models import (
@@ -84,6 +89,7 @@ class DashboardView(APIView):
             "level": course.level,
             "duration_hours": course.duration_hours,
             "price": course.price,
+            "is_published": course.is_published,
         }
 
         if progress is not None:
@@ -339,3 +345,189 @@ class DashboardView(APIView):
                 include_user=True,
             ),
         }
+    
+class AdminUsersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if getattr(request.user, "role", None) != "admin":
+            return Response(
+                {"detail": "Only admins can view users."},
+                status=403
+            )
+
+        users = []
+        now = timezone.now()
+
+        for u in User.objects.all().order_by("-date_joined"):
+            courses_count = 0
+
+            if hasattr(u, "student_profile"):
+                courses_count = Enrollment.objects.filter(
+                    student=u.student_profile
+                ).count()
+
+            if hasattr(u, "teacher_profile"):
+                courses_count = Course.objects.filter(
+                    teacher=u.teacher_profile
+                ).count()
+
+            if getattr(u, "account_status", "normal") == "banned":
+                user_status = "banned"
+
+            elif (
+                getattr(u, "account_status", "normal") == "suspended"
+                and getattr(u, "suspended_until", None)
+                and u.suspended_until > now
+            ):
+                user_status = "suspended"
+
+            elif u.last_login and u.last_login >= now - timedelta(days=30):
+                user_status = "active"
+
+            else:
+                user_status = "inactive"
+
+            users.append({
+                "id": u.id,
+                "name": u.get_full_name() or u.email,
+                "email": u.email,
+                "role": u.role,
+                "courses_count": courses_count,
+                "joined": u.date_joined,
+                "last_login": u.last_login,
+                "status": user_status,
+                "suspended_until": getattr(u, "suspended_until", None),
+            })
+
+        return Response(users)
+    
+class AdminUserActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        if getattr(request.user, "role", None) != "admin":
+            return Response({"detail": "Only admins can manage users."}, status=403)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=404)
+
+        action = request.data.get("action")
+        days = int(request.data.get("days") or 0)
+
+        if action == "suspend":
+            if days <= 0:
+                return Response({"detail": "Suspension duration is required."}, status=400)
+
+            user.account_status = "suspended"
+            user.suspended_until = timezone.now() + timedelta(days=days)
+            user.save(update_fields=["account_status", "suspended_until"])
+
+            return Response({"detail": f"User suspended for {days} days."})
+
+        if action == "ban":
+            user.account_status = "banned"
+            user.suspended_until = None
+            user.save(update_fields=["account_status", "suspended_until"])
+
+            return Response({"detail": "User banned."})
+
+        if action == "restore":
+            user.account_status = "normal"
+            user.suspended_until = None
+            user.save(update_fields=["account_status", "suspended_until"])
+
+            return Response({"detail": "User restored."})
+
+        return Response({"detail": "Invalid action."}, status=400)
+    
+class AdminReportsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if getattr(request.user, "role", None) != "admin":
+            return Response({"detail": "Only admins can view reports."}, status=403)
+
+        total_users = User.objects.count()
+        total_courses = Course.objects.count()
+        total_enrollments = Enrollment.objects.count()
+
+        total_revenue = (
+            Payment.objects
+            .filter(status="paid")
+            .aggregate(total=Sum("amount"))
+            .get("total")
+            or 0
+        )
+
+        user_growth = (
+            User.objects
+            .annotate(month=TruncMonth("date_joined"))
+            .values("month")
+            .annotate(value=Count("id"))
+            .order_by("month")
+        )
+
+        enrollment_growth = (
+            Enrollment.objects
+            .annotate(month=TruncMonth("enrolled_at"))
+            .values("month")
+            .annotate(value=Count("id"))
+            .order_by("month")
+        )
+
+        top_courses = []
+
+        for course in Course.objects.all():
+            students_count = Enrollment.objects.filter(course=course).count()
+
+            avg_rating = (
+                CourseReview.objects
+                .filter(course=course)
+                .aggregate(avg=Avg("rating"))
+                .get("avg")
+                or 0
+            )
+
+            top_courses.append({
+                "id": course.id,
+                "title": course.title,
+                "teacher": str(course.teacher),
+                "students": students_count,
+                "rating": round(avg_rating, 1),
+                "published": course.is_published,
+            })
+
+        top_courses = sorted(
+            top_courses,
+            key=lambda item: item["students"],
+            reverse=True
+        )[:8]
+
+        return Response({
+            "stats": {
+                "total_users": total_users,
+                "total_courses": total_courses,
+                "total_enrollments": total_enrollments,
+                "total_revenue": float(total_revenue),
+            },
+            "user_growth": [
+                {
+                    "label": row["month"].strftime("%b") if row["month"] else "",
+                    "value": row["value"],
+                }
+                for row in user_growth
+            ],
+            "enrollment_growth": [
+                {
+                    "label": row["month"].strftime("%b") if row["month"] else "",
+                    "value": row["value"],
+                }
+                for row in enrollment_growth
+            ],
+            "top_courses": top_courses,
+        })
+
+

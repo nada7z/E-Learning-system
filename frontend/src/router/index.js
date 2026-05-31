@@ -25,6 +25,33 @@ const routes = [
         meta: { role: 'student' }
       },
       {
+        path: 'admin-dashboard',
+        name: 'AdminDashboard',
+        component: () => import('@/views/AdminDashboard.vue'),
+        meta: { role: 'admin' }
+      },
+      {
+        path: 'users',
+        name: 'Users',
+        component: () => import('@/views/UsersView.vue'),
+        meta: { role: 'admin' }
+      },
+      {
+        path: 'admin-courses',
+        name: 'AdminCourses',
+        component: () => import('@/views/AdminCoursesView.vue'),
+        meta: { role: 'admin' }
+      },
+      {
+        path: 'reports',
+        name: 'AdminReports',
+        component: () => import('@/views/AdminReportsView.vue'),
+        meta: {
+          requiresAuth: true,
+          role: 'admin',
+        },
+      },
+      {
         path: 'certificates',
         name: 'Certificates',
         component: () => import('@/views/CertificatesView.vue'),
@@ -69,12 +96,6 @@ const routes = [
         path: 'courses/:id',
         name: 'CourseDetail',
         component: () => import('@/views/CourseDetailView.vue')
-      },
-      {
-        path: 'admin-dashboard',
-        name: 'AdminDashboard',
-        component: () => import('@/views/AdminDashboard.vue'),
-        meta: { role: 'admin' }
       },
       {
         path: '/assignments',

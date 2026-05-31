@@ -118,8 +118,8 @@
 
                             <button class="primary-action" :disabled="submitting || isCompleted(selectedLesson)"
                                 @click="submitAssignment">
-                                {{ isCompleted(selectedLesson) ? 'Submitted' : submitting ? 'Submitting...' : 'Submit
-                                assignment' }}
+                                {{ isCompleted(selectedLesson) ? 'Submitted' : submitting ?
+                                    'Submitting...' : 'Submit assignment' }}
                             </button>
                         </div>
 
