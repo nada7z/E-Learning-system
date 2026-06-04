@@ -20,8 +20,8 @@
       <StatCard :icon="GraduationCap" :value="formatNumber(stats.total_completions)" label="Completions"
         trend="Completed enrollments" trend-class="trend-up" background="#EDE9FE" />
 
-      <StatCard :icon="DollarSign" :value="formatMoney(stats.total_revenue)" label="Revenue"
-        trend="Paid courses revenue" trend-class="trend-up" background="#FFF3E0" />
+      <StatCard :icon="DollarSign" :value="formatMoney(stats.total_revenue)" label="Platform Revenue"
+        trend="20% commission from paid courses" trend-class="trend-up" background="#FFF3E0" />
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
@@ -152,6 +152,8 @@ const stats = ref({
   total_completions: 0,
   active_users_today: 0,
   total_revenue: 0,
+  gross_revenue: 0,
+  teachers_revenue: 0,
 })
 
 const userGrowth = ref([])

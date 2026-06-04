@@ -412,7 +412,7 @@ function buildLessonsPayload() {
   }))
 }
 
-async function saveCourse() {
+async function saveCourse(publish = true) {
   const token = localStorage.getItem('access_token')
 
   if (!token) {
@@ -433,7 +433,7 @@ async function saveCourse() {
   formData.append('lessons', JSON.stringify(buildLessonsPayload()))
   formData.append('is_free', form.pricing === 'free')
   formData.append('price', form.pricing === 'free' ? 0 : form.price || 0)
-  formData.append('is_published', form.settings.publishImmediately)
+  formData.append('is_published', publish ? 'true' : 'false')
 
   if (thumbnailFile.value) {
     formData.append('thumbnail', thumbnailFile.value)
@@ -478,7 +478,7 @@ async function handleNext() {
   }
 
   try {
-    const course = await saveCourse()
+    const course = await saveCourse(true)
     const token = localStorage.getItem('access_token')
     await saveExtraQuizAndAssignments(course.id, token)
 
@@ -496,12 +496,23 @@ async function handleNext() {
   }
 }
 
-function saveDraft() {
-  emit('save-draft', {
-    ...form,
-  })
+async function saveDraft() {
+  try {
+    const course = await saveCourse(false)
 
-  showToast('Draft saved')
+    showToast('Draft saved')
+
+    emit('save-draft', {
+      ...form,
+      id: course.id,
+      is_published: false,
+    })
+
+    step.value = 5
+  } catch (error) {
+    console.error(error.response?.data || error)
+    showToast('Could not save draft')
+  }
 }
 
 function resetForm() {

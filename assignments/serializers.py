@@ -109,9 +109,29 @@ class SubmissionSerializer(serializers.ModelSerializer):
         return "#3D5AFE"
 
     def validate(self, data):
+        # Teacher grading existing submission
         if self.instance is not None:
+            grade = data.get("grade")
+
+            if grade is not None:
+                assignment = self.instance.assignment
+
+                if grade < 0:
+                    raise serializers.ValidationError({
+                        "grade": "Grade cannot be less than 0."
+                    })
+
+                if grade > assignment.max_score:
+                    raise serializers.ValidationError({
+                        "grade": (
+                            f"Grade cannot exceed "
+                            f"{assignment.max_score}."
+                        )
+                    })
+
             return data
 
+        # Student submitting assignment
         request = self.context.get("request")
         assignment = data.get("assignment")
 

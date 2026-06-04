@@ -5,12 +5,6 @@
       <Menu class="top-icon" />
     </button>
 
-    <div class="topbar-search">
-      <Search class="search-icon" />
-
-      <input type="text" placeholder="Search courses, lessons, users…" />
-    </div>
-
     <div class="topbar-actions">
 
       <div class="icon-btn" @click="goTo('notifications')" title="Notifications">

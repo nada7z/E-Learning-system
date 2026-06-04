@@ -1,33 +1,11 @@
 <template>
   <div class="app-layout">
-    <div
-      class="sidebar-overlay"
-      :class="{ show: sidebarOpen }"
-      @click="sidebarOpen = false"
-    ></div>
+    <div class="sidebar-overlay" :class="{ show: sidebarOpen }" @click="sidebarOpen = false"></div>
 
-    <Sidebar
-      :page="page"
-      :role="actualRole"
-      :dark="dark"
-      :unread-count="unreadCount"
-      :open="sidebarOpen"
-      @navigate="onNavigate"
-      @logout="logout"
-      @toggle-dark="toggleDark"
-    />
+    <Sidebar :page="page" :role="actualRole" :dark="dark" :unread-count="unreadCount" :open="sidebarOpen"
+      @navigate="onNavigate" @logout="logout" @toggle-dark="toggleDark" />
 
     <div class="main-content">
-      <Topbar
-        :role="actualRole"
-        :dark="dark"
-        :unread-count="unreadCount"
-        @toggle-sidebar="sidebarOpen = !sidebarOpen"
-        @toggle-dark="$emit('toggle-dark')"
-        @navigate="$emit('navigate', $event)"
-        @toast="$emit('toast', $event)"
-      />
-
       <router-view />
     </div>
   </div>

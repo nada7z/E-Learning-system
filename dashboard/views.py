@@ -209,12 +209,36 @@ class DashboardView(APIView):
             .filter(assignment__course__teacher=teacher, grade__isnull=True)
             .count()
         )
-       
+
         avg_rating = (
             CourseReview.objects
             .filter(course__teacher=teacher)
             .aggregate(avg=Avg("rating"))
             .get("avg")
+        )
+
+        gross_revenue = (
+            Payment.objects
+            .filter(course__teacher=teacher, status="paid")
+            .aggregate(total=Sum("amount"))
+            .get("total")
+            or 0
+        )
+
+        teacher_revenue = gross_revenue * 0.80
+        platform_fee = gross_revenue * 0.20
+
+        revenue_trends = list(
+            Payment.objects
+            .filter(
+                course__teacher=teacher,
+                status="paid",
+                created_at__gte=timezone.now() - timedelta(weeks=12),
+            )
+            .annotate(week=TruncWeek("created_at"))
+            .values("week")
+            .annotate(value=Sum("amount"))
+            .order_by("week")
         )
 
         course_rows = []
@@ -261,6 +285,9 @@ class DashboardView(APIView):
                 "total_students": total_students,
                 "pending_grading": pending_grading,
                 "avg_rating": round(avg_rating, 1) if avg_rating else 0,
+                "gross_revenue": float(gross_revenue),
+                "teacher_revenue": float(teacher_revenue),
+                "platform_fee": float(platform_fee),
             },
             "courses": course_rows,
             "enrollment_trends": {
@@ -268,6 +295,16 @@ class DashboardView(APIView):
                 "datasets": [
                     {"label": label, "data": data}
                     for label, data in datasets.items()
+                ],
+            },
+            "revenue_trends": {
+                "labels": [
+                    row["week"].strftime("%b %d") if row["week"] else ""
+                    for row in revenue_trends
+                ],
+                "data": [
+                    float((row["value"] or 0) * 0.80)
+                    for row in revenue_trends
                 ],
             },
             "recent_activities": self._activity_rows(
@@ -284,6 +321,17 @@ class DashboardView(APIView):
         active_users_today = User.objects.filter(
             last_login__gte=timezone.now() - timedelta(days=1)
         ).count()
+
+        gross_revenue = (
+            Payment.objects
+            .filter(status="paid")
+            .aggregate(total=Sum("amount"))
+            .get("total")
+            or 0
+        )
+
+        platform_revenue = gross_revenue * 0.20
+        teachers_revenue = gross_revenue * 0.80
 
         course_distribution = list(
             Course.objects
@@ -323,7 +371,10 @@ class DashboardView(APIView):
                 "total_enrollments": total_enrollments,
                 "total_completions": total_completions,
                 "active_users_today": active_users_today,
-                "total_revenue": 0,
+                "gross_revenue": float(gross_revenue),
+                "total_revenue": float(platform_revenue),
+                "platform_revenue": float(platform_revenue),
+                "teachers_revenue": float(teachers_revenue),
             },
             "user_growth": [
                 {

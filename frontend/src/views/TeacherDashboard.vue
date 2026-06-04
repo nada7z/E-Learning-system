@@ -20,6 +20,9 @@
       <StatCard :icon="FileText" :value="stats.pending_grading" label="Pending Grading" background="#FFF3E0" />
 
       <StatCard :icon="Star" :value="stats.avg_rating || 0" label="Avg Rating" background="#EDE9FE" />
+
+      <StatCard :icon="DollarSign" :value="formatMoney(stats.teacher_revenue)" label="My Revenue"
+        trend="80% of paid course sales" trend-class="trend-up" background="#DCFCE7" />
     </div>
 
     <div class="card mb-6">
@@ -30,6 +33,17 @@
 
       <div class="chart-box">
         <canvas ref="enrollCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="card mb-6">
+      <div class="card-header">
+        <span class="card-title">Revenue Trends</span>
+        <span class="badge badge-green">80% Share</span>
+      </div>
+
+      <div class="chart-box">
+        <canvas ref="revenueCanvas"></canvas>
       </div>
     </div>
 
@@ -57,6 +71,7 @@ import {
   Users,
   FileText,
   Star,
+  DollarSign,
 } from 'lucide-vue-next'
 
 const emit = defineEmits(['navigate', 'toast'])
@@ -71,6 +86,7 @@ const goToCreateCourse = () => {
 const API_URL = 'http://127.0.0.1:8000/api/dashboard/'
 
 const enrollCanvas = ref(null)
+const revenueCanvas = ref(null)
 const loading = ref(true)
 const error = ref('')
 
@@ -79,6 +95,9 @@ const stats = ref({
   total_students: 0,
   pending_grading: 0,
   avg_rating: null,
+  gross_revenue: 0,
+  teacher_revenue: 0,
+  platform_fee: 0,
 })
 
 const courses = ref([])
@@ -88,7 +107,13 @@ const enrollmentTrends = ref({
   datasets: [],
 })
 
+const revenueTrends = ref({
+  labels: [],
+  data: [],
+})
+
 let chart = null
+let revenueChart = null
 
 const getAuthHeaders = () => {
   const token =
@@ -159,6 +184,11 @@ const fetchDashboard = async () => {
       labels: [],
       datasets: [],
     }
+
+    revenueTrends.value = data.revenue_trends || {
+      labels: [],
+      data: [],
+    }
   } catch (err) {
     console.error(err)
 
@@ -169,8 +199,19 @@ const fetchDashboard = async () => {
     loading.value = false
     await nextTick()
     renderChart()
+    renderRevenueChart()
   }
 }
+
+const chartColors = [
+  '#3D5AFE',
+  '#00897B',
+  '#F57C00',
+  '#7C3AED',
+  '#DB2777',
+  '#00ACC1',
+  '#C62828',
+]
 
 const renderChart = () => {
   if (!enrollCanvas.value) return
@@ -194,22 +235,38 @@ const renderChart = () => {
     type: 'line',
     data: {
       labels,
-      datasets: sourceDatasets.map((dataset) => ({
-        label: dataset.label || 'Enrollments',
-        data: dataset.data?.length
-          ? dataset.data
-          : [0, 0, 0, 0, 0, 0],
-        borderColor: '#3D5AFE',
-        backgroundColor: 'rgba(61, 90, 254, 0.08)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      })),
+      datasets: sourceDatasets.map((dataset, index) => {
+        const color = chartColors[index % chartColors.length]
+
+        return {
+          label: dataset.label || 'Enrollments',
+          data: dataset.data?.length
+            ? dataset.data
+            : [0, 0, 0, 0, 0, 0],
+          borderColor: color,
+          backgroundColor: color + '22',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointStyle: 'circle',
+        }
+      }),
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 10,
+            boxHeight: 10,
+          },
+        },
+      },
       scales: {
         x: {
           display: true,
@@ -229,9 +286,47 @@ const renderChart = () => {
           },
         },
       },
+    },
+  })
+}
+
+const renderRevenueChart = () => {
+  if (!revenueCanvas.value) return
+
+  revenueChart?.destroy()
+
+  revenueChart = new Chart(revenueCanvas.value, {
+    type: 'line',
+    data: {
+      labels: revenueTrends.value.labels,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: revenueTrends.value.data,
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16,185,129,0.1)',
+          fill: true,
+          tension: 0.4,
+
+          pointStyle: 'circle',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
       plugins: {
         legend: {
           display: true,
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 10,
+            boxHeight: 10,
+          },
         },
       },
     },
@@ -241,10 +336,14 @@ const renderChart = () => {
 const formatNumber = (value) =>
   new Intl.NumberFormat().format(Number(value || 0))
 
+const formatMoney = (value) =>
+  `$${new Intl.NumberFormat().format(Number(value || 0))}`
+
 onMounted(fetchDashboard)
 
 onBeforeUnmount(() => {
   chart?.destroy()
+  revenueChart?.destroy()
 })
 </script>
 
@@ -259,5 +358,23 @@ onBeforeUnmount(() => {
   display: block;
   width: 100% !important;
   height: 100% !important;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
