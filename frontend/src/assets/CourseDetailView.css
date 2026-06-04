@@ -1049,3 +1049,14 @@
     border-radius: 18px;
     background: #000;
 }
+
+.uploaded-file {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: #E8F7EE;
+    border: 1px solid #B7E4C7;
+    border-radius: 10px;
+    color: #15803D;
+    font-size: 14px;
+    font-weight: 600;
+}

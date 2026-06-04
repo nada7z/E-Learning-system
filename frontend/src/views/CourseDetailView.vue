@@ -21,9 +21,6 @@
 
         <!-- Back + breadcrumb -->
         <div class="topnav">
-          <button class="back-btn" @click="$emit('navigate', 'courses')">
-            ← Back to courses
-          </button>
           <span class="breadcrumb">Courses / {{ course.category }}</span>
         </div>
 
@@ -83,7 +80,8 @@
             </div>
 
             <p v-if="selectedLesson?.lesson_type !== 'video'" class="lesson-body">
-              {{ selectedLesson?.content || selectedLesson?.description || 'No content yet.' }}
+              {{ selectedLesson?.content || selectedLesson?.description || selectedLesson?.quiz?.description ||
+                selectedLesson?.assignment?.description || 'No content yet.' }}
             </p>
 
             <button
@@ -108,21 +106,29 @@
                 {{ selectedLesson.assignment?.description || selectedLesson.content }}
               </p>
 
-              <div class="field">
+              <div v-if="isStudent" class="field">
                 <label class="field-label">Your answer</label>
                 <textarea v-model="assignmentForm.text_answer" class="field-textarea" rows="5"
                   placeholder="Write your answer here…"></textarea>
               </div>
 
-              <div class="field">
+              <div v-if="isStudent" class="field">
                 <label class="field-label">Upload file <span class="optional">(optional)</span></label>
                 <label class="file-drop">
                   <input class="file-input-hidden" type="file" @change="handleAssignmentFile" />
-                  <span class="file-drop-inner">📂 Click to browse or drag a file here</span>
+                  <span class="file-drop-inner">
+                    <template v-if="assignmentForm.file_name">
+                      ✓ {{ assignmentForm.file_name }}
+                    </template>
+
+                    <template v-else>
+                      📂 Click to browse or drag a file here
+                    </template>
+                  </span>
                 </label>
               </div>
 
-              <button class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)"
+              <button v-if="isStudent" class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)"
                 @click="submitAssignment">
                 <span v-if="submitting" class="spinner-sm"></span>
                 {{ isCompleted(selectedLesson) ? '✓ Submitted' : submitting ? 'Submitting…' : 'Submit assignment' }}
@@ -130,9 +136,12 @@
             </div>
 
             <!-- Quiz block -->
-            <div v-if="selectedLesson?.lesson_type === 'quiz'" class="activity-card">
+            <div v-if="selectedLesson?.lesson_type === 'quiz' || selectedLesson?.lesson_type === 'final_exam'"
+              class="activity-card">
               <div class="activity-header">
-                <span class="activity-type-badge quiz-badge">📝 Quiz</span>
+                <span class="activity-type-badge quiz-badge">
+                  {{ selectedLesson.quiz?.is_final_exam ? '📝 Final Exam' : '📝 Quiz' }}
+                </span>
                 <div class="activity-meta">
                   <span>🏆 Pass {{ selectedLesson.quiz?.passing_score || 50 }}%</span>
                 </div>
@@ -157,17 +166,18 @@
                   <label v-for="option in question.options || []" :key="option.id" class="option-label"
                     :class="{ selected: quizAnswers[question.id]?.selected_option === option.id }">
                     <input type="radio" :name="`question-${question.id}`" :value="option.id"
-                      v-model="quizAnswers[question.id].selected_option" />
+                      v-model="quizAnswers[question.id].selected_option"" />
                     <span>{{ option.text }}</span>
                   </label>
                 </div>
               </div>
 
-              <button class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)" @click="submitQuiz">
-                <span v-if="submitting" class="spinner-sm"></span>
-                {{ isCompleted(selectedLesson) ? '✓ Quiz submitted' : submitting ? 'Submitting…' : 'Submit quiz' }}
-              </button>
-            </div>
+              <button v-if="isStudent" class="btn btn-primary" :disabled="submitting || isCompleted(selectedLesson)"
+                      @click="submitQuiz">
+                    <span v-if="submitting" class="spinner-sm"></span>
+                    {{ isCompleted(selectedLesson) ? '✓ Quiz submitted' : submitting ? 'Submitting…' : 'Submit quiz' }}
+                    </button>
+                </div>
           </section>
 
           <!-- ── Resources tab ── -->
@@ -398,6 +408,7 @@ const canReviewCourse = computed(() => {
 const assignmentForm = reactive({
   text_answer: '',
   file: null,
+  file_name: '',
 })
 
 const tabs = ['Overview', 'Resources', 'Discussions', 'Reviews']
@@ -420,14 +431,27 @@ const courseItems = computed(() => {
     uid: `lesson-${lesson.id}`,
   }))
 
-  const quizItems = quizzes.value.map((quiz) => ({
-    uid: `quiz-${quiz.id}`,
-    id: quiz.id,
-    title: quiz.title,
-    content: quiz.description || '',
-    lesson_type: 'quiz',
-    quiz,
-  }))
+  const normalQuizzes = quizzes.value
+    .filter((quiz) => !quiz.is_final_exam)
+    .map((quiz) => ({
+      uid: `quiz-${quiz.id}`,
+      id: quiz.id,
+      title: quiz.title,
+      content: quiz.description || '',
+      lesson_type: 'quiz',
+      quiz,
+    }))
+
+  const finalExams = quizzes.value
+    .filter((quiz) => quiz.is_final_exam)
+    .map((quiz) => ({
+      uid: `quiz-${quiz.id}`,
+      id: quiz.id,
+      title: quiz.title || 'Final Exam',
+      content: quiz.description || '',
+      lesson_type: 'final_exam',
+      quiz,
+    }))
 
   const assignmentItems = assignments.value.map((assignment) => ({
     uid: `assignment-${assignment.id}`,
@@ -438,7 +462,7 @@ const courseItems = computed(() => {
     assignment,
   }))
 
-  return [...lessons, ...quizItems, ...assignmentItems]
+  return [...lessons, ...normalQuizzes, ...assignmentItems, ...finalExams]
 })
 
 const courseProgress = computed(() => {
@@ -524,13 +548,14 @@ function selectLesson(lesson) {
   selectedLesson.value = lesson
   activeTab.value = 0
 
-  if (lesson.lesson_type === 'quiz') {
+  if (lesson.lesson_type === 'quiz' || lesson.lesson_type === 'final_exam') {
     initQuizAnswers(lesson.quiz)
   }
 
   if (lesson.lesson_type === 'assignment') {
     assignmentForm.text_answer = ''
     assignmentForm.file = null
+    assignmentForm.file_name = ''
   }
 }
 
@@ -666,6 +691,8 @@ function initQuizAnswers(quiz) {
   quizAnswers.value = {}
 
     ; (quiz?.questions || []).forEach((question) => {
+      if (!question?.id) return
+
       quizAnswers.value[question.id] = {
         question: question.id,
         selected_option: null,
@@ -719,7 +746,12 @@ async function submitQuiz() {
 }
 
 function handleAssignmentFile(event) {
-  assignmentForm.file = event.target.files[0] || null
+  const file = event.target.files?.[0]
+
+  if (!file) return
+
+  assignmentForm.file = file
+  assignmentForm.file_name = file.name
 }
 
 async function submitAssignment() {

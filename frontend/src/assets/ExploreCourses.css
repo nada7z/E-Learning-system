@@ -943,3 +943,30 @@
   height: 100%;
   object-fit: cover;
 }
+
+.filters-bar select,
+.filter-select,
+.filter-select select {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+  color: #111827 !important;
+}
+
+.filters-bar select:hover,
+.filter-select select:hover {
+  background: #FFFFFF !important;
+}
+
+.filters-bar select:focus,
+.filter-select select:focus {
+  background: #FFFFFF !important;
+  border-color: #4F46E5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.search-wrap input,
+.filter-select,
+.filter-select select {
+  background: #FFFFFF !important;
+}

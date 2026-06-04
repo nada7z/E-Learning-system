@@ -51,7 +51,18 @@
 
               <label class="field-label">Or upload video</label>
 
-              <input class="input" type="file" accept="video/*" @change="handleVideoUpload($event, lesson)" />
+              <label class="video-upload-btn">
+                <span>
+                  <Upload :size="16" /> Upload Video
+                </span>
+
+                <input class="video-input-hidden" type="file" accept="video/*"
+                  @change="handleVideoUpload($event, lesson)" />
+              </label>
+
+              <div v-if="lesson.video_file_name" class="video-file-name">
+                {{ lesson.video_file_name }}
+              </div>
             </template>
 
             <!-- READING -->
@@ -203,6 +214,8 @@
 </template>
 
 <script setup>
+import { Upload } from 'lucide-vue-next'
+
 defineProps({
   form: Object,
   lessonTypes: Array,
@@ -217,7 +230,12 @@ defineEmits([
 ])
 
 function handleVideoUpload(event, lesson) {
-  lesson.video_file = event.target.files[0]
+  const file = event.target.files?.[0]
+
+  if (!file) return
+
+  lesson.video_file = file
+  lesson.video_file_name = file.name
 }
 
 function addQuestion(lesson) {
@@ -356,5 +374,42 @@ function handleQuestionTypeChange(question) {
   border: none;
   cursor: pointer;
   text-align: left;
+}
+
+.video-input-hidden {
+  display: none;
+}
+
+.video-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 18px;
+
+  background: #4F46E5;
+  color: white;
+
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  width: auto;
+  align-self: flex-start;
+
+  cursor: pointer;
+  transition: .2s;
+}
+
+.video-upload-btn:hover {
+  background: #4338CA;
+}
+
+.video-file-name {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
 }
 </style>

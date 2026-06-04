@@ -12,7 +12,6 @@
           <option value="">All courses</option>
           <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
         </select>
-        <button class="btn btn-ghost btn-sm" @click="showToast('Report exported 📥')">↓ Export</button>
       </div>
     </div>
 

@@ -11,7 +11,9 @@
 
     <div class="filters-bar">
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <Search :size="16" />
+        </span>
         <input v-model="search" class="input search-input" placeholder="Search courses, topics, instructors…" />
       </div>
 
@@ -65,7 +67,9 @@
     </div>
 
     <div v-else-if="!filteredCourses.length" class="empty-state">
-      <div class="empty-icon">🔍</div>
+      <div class="empty-icon">
+        <Search :size="16" />
+      </div>
       <p class="empty-title">No courses found</p>
       <p class="empty-sub">Try adjusting your filters or search term.</p>
       <button class="btn btn-ghost" @click="clearAllFilters">
@@ -233,7 +237,9 @@
             <div class="overlay-cols">
               <div class="overlay-left">
                 <div v-if="isEnrolled(overlay.course?.id)" class="enrolled-banner">
-                  <span>✅ You are enrolled in this course</span>
+                  <span>
+                    <Check :size="18" /> You are enrolled in this course
+                  </span>
 
                   <button class="btn btn-primary btn-sm" @click="goToCourse(overlay.course.id)">
                     Continue learning →
@@ -397,6 +403,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import {
+  Search,
+  Check,
+} from 'lucide-vue-next'
 
 const router = useRouter()
 const API_BASE = 'http://127.0.0.1:8000/api'

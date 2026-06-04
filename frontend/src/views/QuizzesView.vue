@@ -13,7 +13,9 @@
     <!-- Filters -->
     <div class="filters-bar">
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <Search :size="16" />
+        </span>
         <input v-model="search" class="input search-input" placeholder="Search quizzes…" />
       </div>
 
@@ -415,6 +417,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { Search } from 'lucide-vue-next'
 
 const courses = ref([])
 const quizzes = ref([])

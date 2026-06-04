@@ -38,48 +38,46 @@
           Code: {{ certificate.certificate_code }}
         </div>
 
-        <button class="btn btn-primary btn-sm" @click.stop="activeCertificate = index">
+        <button class="certificate-btn" @click="viewCertificate(certificate)">
           View Certificate
         </button>
       </div>
     </div>
 
-    <div v-if="selected" class="certificate">
-      <div class="cert-border"></div>
+    <div v-if="selectedCertificate" class="certificate-preview">
+      <div class="certificate">
+        <div class="certificate-icon">
+          🎓
+        </div>
 
-      <div class="cert-seal">🎓</div>
+        <h3>CERTIFICATE OF COMPLETION</h3>
 
-      <div class="cert-label">
-        Certificate of Completion
+        <p>This is to certify that</p>
+
+        <h1>
+          {{ selectedCertificate.student_name }}
+        </h1>
+
+        <p>
+          has successfully completed
+        </p>
+
+        <h2>
+          {{ selectedCertificate.course_title }}
+        </h2>
+
+        <p>
+          Issued {{ formatDate(selectedCertificate.issued_at) }}
+        </p>
+
+        <p>
+          {{ selectedCertificate.certificate_code }}
+        </p>
+
+        <button class="close-btn" @click="closeCertificate">
+          Close
+        </button>
       </div>
-
-      <div class="cert-small">
-        This is to certify that
-      </div>
-
-      <div class="cert-student">
-        {{ selected.student_name }}
-      </div>
-
-      <div class="cert-small cert-margin">
-        has successfully completed the course
-      </div>
-
-      <div class="cert-title">
-        {{ selected.course_title }}
-      </div>
-
-      <div class="cert-code-large">
-        Certificate Code: {{ selected.certificate_code }}
-      </div>
-
-      <div class="cert-date-large">
-        Issued on {{ formatDate(selected.issued_at) }}
-      </div>
-
-      <a v-if="selected.pdf_url" :href="selected.pdf_url" target="_blank" class="btn btn-primary">
-        Download PDF
-      </a>
     </div>
   </div>
 </template>
@@ -99,6 +97,16 @@ const selected = computed(() => {
   if (activeCertificate.value === null) return null
   return certificates.value[activeCertificate.value] || null
 })
+
+const selectedCertificate = ref(null)
+
+function viewCertificate(certificate) {
+  selectedCertificate.value = certificate
+}
+
+function closeCertificate() {
+  selectedCertificate.value = null
+}
 
 function authHeaders() {
   const token = localStorage.getItem('access_token')
@@ -144,15 +152,45 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.certificates-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: var(--text, #0f172a);
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--text2, #64748b);
+  font-size: 14px;
+}
+
 .cert-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fill, 360px);
+  gap: 18px;
+  margin-bottom: 28px;
+  justify-content: start;
 }
 
 .cert-card {
+  background: #fff;
+  border: 1px solid #e5e0d6;
+  border-radius: 18px;
+  padding: 18px;
   cursor: pointer;
+}
+
+.cert-card.active {
+  border-color: #9ca3af;
 }
 
 .cert-thumb {
@@ -161,110 +199,198 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 36px;
   margin-bottom: 16px;
-  background: var(--accent-light, #EEF1FF);
+  background: #eef1ff;
 }
 
 .cert-course {
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 16px;
   margin-bottom: 4px;
+  color: #0f172a;
 }
 
 .cert-date {
   font-size: 13px;
-  color: var(--text2);
-  margin-bottom: 8px;
+  color: #5f6368;
+  margin-bottom: 12px;
 }
 
 .cert-code {
-  font-size: 12px;
-  color: var(--text3);
-  margin-bottom: 12px;
+  display: none;
 }
 
-.empty-certificates {
-  text-align: center;
-  padding: 48px 24px;
+.cert-actions {
+  display: flex;
+  gap: 8px;
 }
 
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+.certificate-btn {
+  flex: 1;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: #3d5afe;
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
 }
 
-.error-card {
-  color: #dc2626;
+.certificate-btn:hover {
+  background: #304ffe;
+}
+
+.download-btn {
+  width: 44px;
+  border: 1px solid #e5e0d6;
+  border-radius: 10px;
+  background: white;
+  color: #555;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+
+.preview-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.close-btn {
+  border: 1px solid #e5e0d6;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: white;
+  color: #555;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.certificate-preview {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
 }
 
 .certificate {
+  width: 100%;
+  max-width: 680px;
+  min-height: 460px;
   background: white;
-  border-radius: 24px;
-  padding: 48px;
+  border-radius: 22px;
+  padding: 42px 40px;
   text-align: center;
   position: relative;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e5e0d6;
+  box-shadow: 0 0 0 10px #f8f7f3;
 }
 
-.cert-border {
+.certificate::before {
+  content: "";
   position: absolute;
-  inset: 16px;
-  border: 2px solid var(--accent, #4f46e5);
-  border-radius: 18px;
+  inset: 12px;
+  border: 1px solid #e5e0d6;
+  border-radius: 16px;
   pointer-events: none;
 }
 
-.cert-seal {
-  font-size: 52px;
-  margin-bottom: 12px;
+.certificate-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid #3d5afe;
+  background: #eef1ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 22px;
 }
 
-.cert-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .15em;
-  color: var(--text2);
-  margin-bottom: 12px;
-}
-
-.cert-small {
-  font-family: Sora, sans-serif;
+.certificate h3 {
   font-size: 13px;
-  color: var(--text2);
-  margin-bottom: 8px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #5f6368;
+  margin: 0 0 14px;
 }
 
-.cert-margin {
-  margin: 16px 0 8px;
+.certificate p {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 16px;
 }
 
-.cert-student {
-  font-family: Sora, sans-serif;
+.certificate h1 {
   font-size: 32px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
-  padding: 8px 0;
-  border-bottom: 2px solid var(--accent, #4f46e5);
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 auto 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3d5afe;
   display: inline-block;
-  min-width: 200px;
+  min-width: 220px;
 }
 
-.cert-title {
-  font-family: Sora, sans-serif;
+.certificate h2 {
   font-size: 22px;
-  font-weight: 700;
-  color: var(--accent, #4f46e5);
-  margin-bottom: 16px;
+  font-weight: 900;
+  color: #3d5afe;
+  margin: 0 0 28px;
+}
+
+.certificate-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  max-width: 420px;
+  margin: 0 auto 20px;
+}
+
+.cert-signature {
+  border-top: 1px solid #e5e0d6;
+  padding-top: 10px;
+  text-align: left;
+}
+
+.cert-signature strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.cert-signature span {
+  color: #4b5563;
+  font-size: 12px;
 }
 
 .cert-code-large,
 .cert-date-large {
-  font-size: 13px;
-  color: var(--text2);
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 18px;
+}
+
+.empty-certificates {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-icon {
+  font-size: 40px;
   margin-bottom: 10px;
+}
+
+.error-card {
+  color: #dc2626;
 }
 </style>
