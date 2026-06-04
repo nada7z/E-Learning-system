@@ -42,7 +42,7 @@
                     <div class="course-footer">
                         <span>{{ course.lessons_count }} items</span>
 
-                        <button @click="goToCourse(course.id)">
+                        <button class="continue-btn" @click="continueCourse(course)">
                             Continue
                         </button>
                     </div>
@@ -61,6 +61,10 @@ const router = useRouter()
 
 const courses = ref([])
 const loading = ref(false)
+
+const continueCourse = (course) => {
+    router.push(`/courses/${course.id}`)
+}
 
 function authHeaders() {
     const token = localStorage.getItem('access_token')
@@ -98,63 +102,61 @@ onMounted(fetchContinueCourses)
 
 <style scoped>
 .continue-page {
-    padding: 32px 40px;
+    padding: 32px;
+    width: 100%;
 }
 
 .page-header {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
 .page-header h1 {
-    font-size: 32px;
-    font-weight: 800;
-    margin: 0 0 8px;
-    color: var(--text, #0f172a);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--text, #1A1916);
 }
 
 .page-header p {
     margin: 0;
-    color: var(--text2, #64748b);
-    font-size: 16px;
+    color: var(--text2, #6B6860);
+    font-size: 14px;
 }
 
 .courses-list {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
 }
 
 .course-box {
     display: flex;
-    gap: 20px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+    gap: 16px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #E5E2DA);
+    border-radius: 16px;
+    padding: 16px;
 }
 
 .course-thumb {
-    width: 180px;
-    height: 120px;
-    border-radius: 18px;
+    width: 150px;
+    height: 96px;
+    border-radius: 14px;
     object-fit: cover;
     flex-shrink: 0;
 }
 
 .placeholder {
-    background: #eef1ff;
+    background: var(--accent-light, #EEF1FF);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 42px;
+    font-size: 34px;
 }
 
 .course-content {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    min-width: 0;
 }
 
 .course-top {
@@ -164,35 +166,35 @@ onMounted(fetchContinueCourses)
 }
 
 .course-top h3 {
-    margin: 4px 0 6px;
-    font-size: 22px;
-    font-weight: 800;
-    color: #0f172a;
+    margin: 0 0 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text, #1A1916);
 }
 
 .course-top p {
     margin: 0;
-    color: #64748b;
-    font-size: 14px;
+    color: var(--text2, #6B6860);
+    font-size: 13px;
 }
 
 .percent {
-    font-size: 18px;
-    font-weight: 800;
-    color: #4f46e5;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent, #3D5AFE);
 }
 
 .progress-track {
-    height: 10px;
-    background: #eef1ff;
+    height: 6px;
+    background: var(--surface2, #F0EEE9);
     border-radius: 999px;
     overflow: hidden;
-    margin: 20px 0;
+    margin: 14px 0;
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+    background: var(--accent, #3D5AFE);
     border-radius: 999px;
 }
 
@@ -203,40 +205,38 @@ onMounted(fetchContinueCourses)
 }
 
 .course-footer span {
-    color: #64748b;
-    font-size: 14px;
+    color: var(--text2, #6B6860);
+    font-size: 13px;
 }
 
 .course-footer button {
-    border: none;
-    background: #4f46e5;
-    color: white;
-    font-weight: 700;
-    padding: 12px 24px;
-    border-radius: 14px;
-    cursor: pointer;
+    background: var(--accent, #3D5AFE);
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 10px;
 }
 
 .course-footer button:hover {
-    background: #4338ca;
+    background: var(--accent-dark, #1939B7);
 }
 
 .empty-box {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 22px;
-    padding: 60px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #E5E2DA);
+    border-radius: 16px;
+    padding: 40px;
     text-align: center;
 }
 
 .empty-icon {
-    font-size: 44px;
+    font-size: 36px;
     margin-bottom: 12px;
 }
 
 @media (max-width: 768px) {
     .continue-page {
-        padding: 24px 18px;
+        padding: 20px;
     }
 
     .course-box {
@@ -245,7 +245,7 @@ onMounted(fetchContinueCourses)
 
     .course-thumb {
         width: 100%;
-        height: 180px;
+        height: 160px;
     }
 }
 </style>

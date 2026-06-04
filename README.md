@@ -27,6 +27,9 @@ La plateforme permet :
 - Chart.js
 - CSS
 
+### FrontendAPI endpoints
+http://localhost:8000/api/docs/
+
 ## 3. Installation du projet
 
 ### Backend Django
@@ -38,3 +41,6 @@ venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
+
+
+
